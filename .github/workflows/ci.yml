@@ -96,7 +96,7 @@ jobs:
       - name: Dépendances directes
         run: go list -m -f '{{if not .Indirect}}{{.Path}}{{end}}' all | grep -v '^$' || true
 
- Publication:
+  publication:
     name: Publication ${{ github.ref_name }}
     needs: [tests, compilation, captures]
     if: startsWith(github.ref, 'refs/tags/v')
@@ -129,6 +129,11 @@ jobs:
           go build -o hippo ./cmd/hippo
           ./hippo man --dans pages-man
 
+      # Le script d'installation est joint à la version : c'est par là qu'on
+      # arrive en premier. Il doit donc être prêt avant la création.
+      - name: Préparer le script d'installation
+        run: cp scripts/install.sh installation.sh
+
       - name: Créer la version
         uses: softprops/action-gh-release@v2
         with:
@@ -137,6 +142,4 @@ jobs:
           files: |
             hippo_*
             pages-man/hippo.1
-
-      - name: Joindre le script d'installation
-        run: cp scripts/install.sh installation.sh
+            installation.sh
