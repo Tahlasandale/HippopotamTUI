@@ -2,16 +2,25 @@ package himalaya
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/Tahlasandale/HippopotamTUI/internal/rfc822"
 )
 
-// TestContreLeVraiHimalaya n'est utile que sur une machine où himalaya est
-// configuré : c'est une vérification de bout en bout, pas un test unitaire.
+// TestContreLeVraiHimalaya confronte le client à la vraie boîte de réception.
+// C'est une vérification de bout en bout, pas un test unitaire : elle touche le
+// réseau et elle n'a de sens que sur une machine où himalaya est configuré.
+//
+// Elle est donc hors du chemin par défaut. Pour la lancer :
+//
+//	HIPPO_TEST_REEL=1 go test ./internal/himalaya/ -run ContreLeVrai -v
+//
+// C'est ce test qui a trouvé les trois défauts de décodage MIME corrigés en
+// 0.1.0, et il mérite d'être lancé après toute modification du client.
 func TestContreLeVraiHimalaya(t *testing.T) {
-	if testing.Short() {
-		t.Skip("besoin d'un vrai compte mail")
+	if os.Getenv("HIPPO_TEST_REEL") == "" {
+		t.Skip("définir HIPPO_TEST_REEL=1 pour utiliser un vrai compte mail")
 	}
 	ctx := context.Background()
 	c := &CLI{Bin: "himalaya"}

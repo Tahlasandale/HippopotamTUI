@@ -7,6 +7,7 @@ import (
 
 	"github.com/Tahlasandale/HippopotamTUI/internal/himalaya"
 	"github.com/Tahlasandale/HippopotamTUI/internal/redaction"
+	"github.com/Tahlasandale/HippopotamTUI/internal/rfc822"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -231,12 +232,12 @@ func (m *Modèle) nomExpéditeurDe(env himalaya.Enveloppe) string {
 	return nom
 }
 
+// formaterDate rend l'heure pour un message du jour, la date au-delà. C'est le
+// format qu'on veut voir dans une liste de courrier : « 21:17 » quand ça vient
+// d'arriver, « 12/10 » quand c'est plus ancien.
 func formaterDate(brut string) string {
-	if brut == "" {
-		return "??/??"
-	}
-	t, err := time.Parse(time.RFC3339, brut)
-	if err != nil {
+	t := rfc822.LireDate(brut)
+	if t.IsZero() {
 		return "??/??"
 	}
 	aujourdhui := time.Now()

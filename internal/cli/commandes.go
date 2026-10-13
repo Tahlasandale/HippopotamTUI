@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/Tahlasandale/HippopotamTUI/internal/cache"
 	"github.com/Tahlasandale/HippopotamTUI/internal/config"
@@ -28,7 +29,7 @@ func clientEtCache(cfg config.Config, chemins config.Emplacements, démo bool) (
 	if démo {
 		return demo.Nouveau(), store
 	}
-	return &himalaya.CLI{Bin: cfg.Himalaya}, store
+	return &himalaya.CLI{Bin: cfg.Himalaya, Délai: time.Duration(cfg.Délai) * time.Second}, store
 }
 
 func versionCmd(_ *options) *cobra.Command {
@@ -229,7 +230,7 @@ func cacheCmd(opts *options) *cobra.Command {
 }
 
 func clientHimalaya(cfg config.Config) himalaya.Client {
-	return &himalaya.CLI{Bin: cfg.Himalaya}
+	return &himalaya.CLI{Bin: cfg.Himalaya, Délai: time.Duration(cfg.Délai) * time.Second}
 }
 
 func cfgComptes(client himalaya.Client) ([]himalaya.Compte, error) {

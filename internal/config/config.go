@@ -35,6 +35,12 @@ type Config struct {
 	// qu'il soit relance au démarrage.
 	ContactsRefreshDays int `toml:"contacts_refresh_days"`
 
+	// Délai borne chaque appel réseau, en secondes. Zéro, ou en dessous, vaut 90.
+	// Un relais ou une connexion lente peut demander de l'augmenter ; le laisser
+	// plus bas que le délai de flux de himalaya fait perdre ses messages
+	// d'erreur, qui sont les plus parlants.
+	Délai int `toml:"timeout_seconds"`
+
 	// Keys surcharge ponctuellement une touche. Clé : nom de l'action,
 	// valeur : touche ou séquence ("ctrl-s", "f2"...).
 	Keys map[string]string `toml:"keys"`
@@ -49,6 +55,7 @@ func Default() Config {
 		PageSize:            25,
 		RefreshMinutes:      5,
 		ContactsRefreshDays: 7,
+		Délai:               90,
 	}
 }
 
@@ -140,5 +147,8 @@ func (c *Config) normalise() {
 	}
 	if c.ContactsRefreshDays <= 0 {
 		c.ContactsRefreshDays = 7
+	}
+	if c.Délai <= 0 {
+		c.Délai = 90
 	}
 }

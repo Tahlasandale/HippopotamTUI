@@ -9,16 +9,16 @@
 │  c         écrire un message                                                                    
 │  ?         tous les raccourcis                                                                  
 │                                                                                                 
-│ • ??/?? Commission Scolaire    📎 Rapport de la commission scolaire                             
-│ • ??/?? Mairie                 Réunion du conseil municipal                                     
-│   ??/?? Scolarité              Votre attestation d'inscription                                  
-│ ★ ??/?? Emploi                 Candidature reçue                                                
-│   ??/?? Énergie                📎 Facture du mois                                               
-│   ??/?? Association            Invitation à l'assemblée générale                                
-│   ??/?? Info                   Newsletter du service                                            
-│   ??/?? Carla                  Réponse à votre message                                          
-│   ??/?? Sécurité               Mot de passe expiré                                              
-│   ??/?? Groupe                 📎 Photo de la sortie                                            
+│ • 21:23 Commission Scolaire    📎 Rapport de la commission scolaire                             
+│ • 17:23 Mairie                 Réunion du conseil municipal                                     
+│   12/10 Scolarité              Votre attestation d'inscription                                  
+│ ★ 11/10 Emploi                 Candidature reçue                                                
+│   10/10 Énergie                📎 Facture du mois                                               
+│   09/10 Association            Invitation à l'assemblée générale                                
+│   07/10 Info                   Newsletter du service                                            
+│   06/10 Carla                  Réponse à votre message                                          
+│   04/10 Sécurité               Mot de passe expiré                                              
+│   01/10 Groupe                 📎 Photo de la sortie                                            
 │                                                                                                 
 │ ↑↓ naviguer  ·  ←→ boîte  ·  entrer lire  ·  r répondre  ·  a à tous  ·  t transférer  ·  …     
 └──────────────────────────────────────────────────────────────────────────────────────────────────

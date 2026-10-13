@@ -37,6 +37,11 @@ refresh_minutes = ` + fmt.Sprint(c.RefreshMinutes) + `
 # Jours avant que le carnet d'adresses soit reconstruit au démarrage.
 contacts_refresh_days = ` + fmt.Sprint(c.ContactsRefreshDays) + `
 
+# Secondes avant qu'un appel réseau soit abandonné. À augmenter sur une
+# connexion lente : en dessous du délai de himalaya, ses messages d'erreur,
+# qui sont les plus parlants, n'arrivent jamais.
+timeout_seconds = ` + fmt.Sprint(c.Délai) + `
+
 # Surcharge ponctuelle d'une touche. Clé : nom de l'action, valeur : touche.
 # Les noms d'actions sont ceux de docs/raccourcis.md.
 # Exemple :
@@ -62,6 +67,7 @@ func Expliquer(c Config) string {
 	ligne("page_size", fmt.Sprint(c.PageSize), fmt.Sprint(d.PageSize))
 	ligne("refresh_minutes", fmt.Sprint(c.RefreshMinutes), fmt.Sprint(d.RefreshMinutes))
 	ligne("contacts_refresh_days", fmt.Sprint(c.ContactsRefreshDays), fmt.Sprint(d.ContactsRefreshDays))
+	ligne("timeout_seconds", fmt.Sprint(c.Délai), fmt.Sprint(d.Délai))
 
 	if len(c.Keys) == 0 {
 		b.WriteString("  aucune touche surchargeée\n")

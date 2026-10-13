@@ -85,7 +85,7 @@ func Analyser(brut []byte) (*Message, error) {
 		MessageID: strings.Trim(lu.Header.Get("Message-Id"), "<> "),
 	}
 
-	msg.Date = lireDate(lu.Header.Get("Date"))
+	msg.Date = LireDate(lu.Header.Get("Date"))
 
 	msg.Corps, msg.HTML, msg.Pièces, msg.DejaMarkdown = analyserCorps(lu.Header, lu.Body)
 
@@ -125,10 +125,13 @@ func adresseLisible(valeur string) string {
 
 // analyserCorps parcourt le corps du message, en descendant dans les parties
 // imbriquées.
-// lireDate accepte la date RFC 5322, celle du protocole, et la forme ISO que
-// produisent certains générateurs. Un message réel n'a jamais la seconde forme,
-// mais un outil qui sait la lire ne fait pas de mal.
-func lireDate(valeur string) time.Time {
+// LireDate lit une date d'en-tête dans les formes qu'on rencontre : RFC 5322, celle
+// du protocole, et les formes ISO que produisent certains générateurs et que
+// himalaya rend dans ses enveloppes.
+//
+// Exported parce que la liste des messages a le même problème : une date qu'on ne
+// sait pas lire s'affiche « ??/?? » à l'écran, ce qui est pire que de la deviner.
+func LireDate(valeur string) time.Time {
 	valeur = strings.TrimSpace(valeur)
 	if valeur == "" {
 		return time.Time{}
@@ -136,7 +139,13 @@ func lireDate(valeur string) time.Time {
 	if t, err := mail.ParseDate(valeur); err == nil {
 		return t
 	}
-	for _, format := range []string{time.RFC3339, "2006-01-02T15:04:05", "2006-01-02 15:04:05"} {
+	for _, format := range []string{
+		time.RFC3339,
+		time.RFC1123Z,
+		time.RFC1123,
+		"2006-01-02T15:04:05",
+		"2006-01-02 15:04:05",
+	} {
 		if t, err := time.Parse(format, valeur); err == nil {
 			return t
 		}

@@ -1,0 +1,142 @@
+name: Vérification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests (${{ matrix.os }}, Go ${{ matrix.go }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        go: ['1.24', 'stable']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+          check-latest: true
+
+      - name: Vérifier le format
+        run: |
+          fichiers=$(gofmt -l .)
+          if [ -n "$fichiers" ]; then
+            echo "Ces fichiers ne sont pas au format :"
+            echo "$fichiers"
+            echo ""
+            echo "make format"
+            exit 1
+          fi
+
+      - name: Analyse statique
+        run: go vet ./...
+
+      - name: Tests
+        run: go test -race -coverprofile=couverture.out ./...
+
+      - name: Couverture
+        run: go tool cover -func=couverture.out | tail -1
+
+  compilation:
+    name: Compilation statique (${{ matrix.go }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ['1.24', 'stable']
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+      # CGO_ENABLED=0 prouve qu'aucune bibliothèque système n'est nécessaire :
+      # le binaire doit se contenter de Go.
+      - run: CGO_ENABLED=0 go build -trimpath -o hippo ./cmd/hippo
+      - run: ./hippo version
+
+  captures:
+    name: Captures à jour
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+      # La documentation montre ce que le programme produit. Si un écran a
+      # changé sans que les captures soient régénérées, la doc ment.
+      - run: |
+          go build -o hippo ./cmd/hippo
+          ./hippo capture --dans captures-temporaires
+          if ! diff -r captures-temporaires docs/captures; then
+            echo ""
+            echo "Les captures ne correspondent plus au programme."
+            echo "Lancez « make captures » et commitez le résultat."
+            exit 1
+          fi
+
+  bibliotheques:
+    name: Inventaire des dépendances
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+      - run: go list -m -u all > /dev/null
+      - name: Dépendances directes
+        run: go list -m -f '{{if not .Indirect}}{{.Path}}{{end}}' all | grep -v '^$' || true
+
+ Publication:
+    name: Publication ${{ github.ref_name }}
+    needs: [tests, compilation, captures]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Découper la version
+        id: version
+        run: echo "numéro=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Compiler pour chaque plateforme
+        run: |
+          for cible in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 freebsd/amd64; do
+            os=${cible%/*}
+            arch=${cible#*/}
+            GOOS=$os GOARCH=$arch CGO_ENABLED=0 \
+              go build -trimpath -ldflags "-s -w" \
+              -o "hippo_${os}_${arch}" ./cmd/hippo
+          done
+
+      - name: Page de manuel
+        run: |
+          go build -o hippo ./cmd/hippo
+          ./hippo man --dans pages-man
+
+      - name: Créer la version
+        uses: softprops/action-gh-release@v2
+        with:
+          name: HippopotamTUI ${{ steps.version.outputs.numéro }}
+          draft: true
+          files: |
+            hippo_*
+            pages-man/hippo.1
+
+      - name: Joindre le script d'installation
+        run: cp scripts/install.sh installation.sh

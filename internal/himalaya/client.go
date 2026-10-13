@@ -240,7 +240,13 @@ func (c *CLI) executeur() execer {
 }
 
 // délaiImplicite borne un appel quand aucun délai n'a été fixé.
-const délaiImplicite = 60 * time.Second
+//
+// Il est volontairement plus long que le délai de flux de himalaya, qui coupe à
+// soixante secondes et écrit un message d'erreur explicite. veut qu'une
+// connexion IMAP qui traîne ne bloque pas l'interface, pas qu'elle vole la
+// parole à l'outil : sur une connexion lente mais vivante, c'est lui qui doit
+// parler, et son message dit pourquoi.
+const délaiImplicite = 90 * time.Second
 
 func (c *CLI) context(ctx context.Context) (context.Context, context.CancelFunc) {
 	d := c.Délai
