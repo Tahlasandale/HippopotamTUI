@@ -1,0 +1,7 @@
+# Binaire compilé
+/hippo
+/dist/
+
+# Caches de construction
+*.test
+*.out
