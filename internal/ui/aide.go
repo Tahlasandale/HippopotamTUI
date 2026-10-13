@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Tahlasandale/HippopotamTUI/internal/contacts"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -202,12 +201,4 @@ func (m *Modèle) vueFiltres() string {
 	out = append(out, "  "+stLigneCouper(m.filtres.Requête(), max0(m.largeur-2)))
 	out = append(out, "", m.barreDuBas())
 	return lipgloss.JoinVertical(lipgloss.Left, out...)
-}
-
-// proposerContact ajoute une adresse au champ actif depuis la liste de
-// propositions, sans passer par le clavier de l'éditeur.
-func proposerContact(f *formulaire, c contacts.Contact) bool {
-	f.proposés = append([]contacts.Contact{c}, f.proposés...)
-	f.choisi = 0
-	return f.accepterProposition()
 }

@@ -1,5 +1,7 @@
 # HippopotamTUI
 
+[![Vérification](https://github.com/Tahlasandale/HippopotamTUI/actions/workflows/ci.yml/badge.svg)](https://github.com/Tahlasandale/HippopotamTUI/actions/workflows/ci.yml)
+
 Un client de messagerie en ligne de commande, léger, rapide et entièrement
 documenté en français.
 

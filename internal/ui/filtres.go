@@ -27,15 +27,6 @@ var critèresFiltres = []critère{
 	{clé: "nonlus", texte: "Non lus"},
 }
 
-func libelléDe(clef string) string {
-	for _, c := range critèresFiltres {
-		if c.clé == clef {
-			return c.texte
-		}
-	}
-	return clef
-}
-
 func valeurCritère(fs redaction.Filtres, clef string) string {
 	switch clef {
 	case "de":

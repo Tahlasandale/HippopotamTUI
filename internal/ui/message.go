@@ -3,7 +3,6 @@ package ui
 import (
 	"strings"
 
-	"github.com/Tahlasandale/HippopotamTUI/internal/himalaya"
 	"github.com/Tahlasandale/HippopotamTUI/internal/rfc822"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
@@ -99,10 +98,4 @@ func replier(ligne string, largeur int) string {
 	}
 	morceaux = append(morceaux, reste)
 	return strings.Join(morceaux, "\n")
-}
-
-// rend une liste d'enveloppes pour le test et le journal : c'est la seule chose
-// qui ressemble à une « ligne » sans passer par le terminal.
-func résumerEnv(env himalaya.Enveloppe) string {
-	return env.Expéditeur() + " | " + env.Sujet
 }

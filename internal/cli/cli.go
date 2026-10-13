@@ -8,7 +8,6 @@ package cli
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/Tahlasandale/HippopotamTUI/internal/config"
 	"github.com/Tahlasandale/HippopotamTUI/internal/ui"
@@ -125,18 +124,4 @@ func lancer(opts options) error {
 
 func isTerminalAbsente(err error) bool {
 	return err != nil && (os.Getenv("TERM") == "" || os.Getenv("TERM") == "dumb")
-}
-
-// cheminRelatif transforme un chemin absolu en chemin depuis le répertoire
-// courant, pour des affichages plus courts quand c'est possible.
-func cheminRelatif(chemin string) string {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return chemin
-	}
-	relatif, err := filepath.Rel(cwd, chemin)
-	if err != nil || len(relatif) > len(chemin) {
-		return chemin
-	}
-	return relatif
 }
