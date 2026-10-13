@@ -45,17 +45,20 @@ func (a Adresse) Format() string {
 
 // Enveloppe est l'en-tête d'un message : de quoi l'afficher sans le télécharger.
 type Enveloppe struct {
-	ID             string    `json:"id"`
-	MessageID      string    `json:"message-id"`
-	Drapeaux       []drapeau `json:"flags"`
-	Sujet          string    `json:"subject"`
-	De             []Adresse `json:"from"`
-	Vers           []Adresse `json:"to"`
-	Cc             []Adresse `json:"cc"`
-	Date           string    `json:"date"`
-	Taille         int       `json:"size"`
-	PiecesJointes  bool      `json:"-"`
-	PieceJointeRaw *bool     `json:"has-attachment"`
+	ID        string    `json:"id"`
+	MessageID string    `json:"message-id"`
+	Drapeaux  []drapeau `json:"flags"`
+	Sujet     string    `json:"subject"`
+	De        []Adresse `json:"from"`
+	Vers      []Adresse `json:"to"`
+	Cc        []Adresse `json:"cc"`
+	Date      string    `json:"date"`
+	Taille    int       `json:"size"`
+	// PiecesJointes est le drapeau calculé, celui que l'interface affiche.
+	// PieceJointeRaw est le champ de himalaya, qui peut rester absent quand le
+	// coût d'une requête supplémentaire n'a pas été payé.
+	PiecesJointes  bool  `json:"pieces-jointes"`
+	PieceJointeRaw *bool `json:"has-attachment"`
 }
 
 // drapeaux est le type interne des drapeaux, enrichi du nom IANA pour ne pas
@@ -330,9 +333,13 @@ func (c *CLI) Boites(ctx context.Context, compte string) ([]Boite, error) {
 	return sortie.Boites, nil
 }
 
-func nettoyer(enveloppes []Enveloppe) []Enveloppe {
+// Normaliser reporte l'indicateur de pièce jointe sur le champ que l'interface
+// utilise, sans écraser la valeur déjà connue d'une enveloppe relue du cache.
+func Normaliser(enveloppes []Enveloppe) []Enveloppe {
 	for i := range enveloppes {
-		enveloppes[i].PiecesJointes = enveloppes[i].PieceJointeRaw != nil && *enveloppes[i].PieceJointeRaw
+		if enveloppes[i].PieceJointeRaw != nil {
+			enveloppes[i].PiecesJointes = *enveloppes[i].PieceJointeRaw
+		}
 	}
 	return enveloppes
 }
@@ -346,7 +353,7 @@ func (c *CLI) Enveloppes(ctx context.Context, compte, boite string, page, taille
 	if err := c.json(ctx, &sortie, args...); err != nil {
 		return nil, err
 	}
-	return nettoyer(sortie.Enveloppes), nil
+	return Normaliser(sortie.Enveloppes), nil
 }
 
 // Rechercher applique une requête à une boîte. La requête est transmise mot pour
@@ -363,7 +370,7 @@ func (c *CLI) Rechercher(ctx context.Context, compte, boite, requete string, pag
 	if err := c.json(ctx, &sortie, args...); err != nil {
 		return nil, err
 	}
-	return nettoyer(sortie.Enveloppes), nil
+	return Normaliser(sortie.Enveloppes), nil
 }
 
 // Message renvoie les octets RFC 5322 du message. Le TUI les décode lui-même
