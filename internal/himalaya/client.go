@@ -45,15 +45,15 @@ func (a Adresse) Format() string {
 
 // Enveloppe est l'en-tête d'un message : de quoi l'afficher sans le télécharger.
 type Enveloppe struct {
-	ID        string    `json:"id"`
-	MessageID string    `json:"message-id"`
-	Drapeaux  []drapeau `json:"flags"`
-	Sujet     string    `json:"subject"`
-	De        []Adresse `json:"from"`
-	Vers      []Adresse `json:"to"`
-	Cc        []Adresse `json:"cc"`
-	Date      string    `json:"date"`
-	Taille    int       `json:"size"`
+	ID        string       `json:"id"`
+	MessageID string       `json:"message-id"`
+	Drapeaux  []Indicateur `json:"flags"`
+	Sujet     string       `json:"subject"`
+	De        []Adresse    `json:"from"`
+	Vers      []Adresse    `json:"to"`
+	Cc        []Adresse    `json:"cc"`
+	Date      string       `json:"date"`
+	Taille    int          `json:"size"`
 	// PiecesJointes est le drapeau calculé, celui que l'interface affiche.
 	// PieceJointeRaw est le champ de himalaya, qui peut rester absent quand le
 	// coût d'une requête supplémentaire n'a pas été payé.
@@ -61,9 +61,9 @@ type Enveloppe struct {
 	PieceJointeRaw *bool `json:"has-attachment"`
 }
 
-// drapeaux est le type interne des drapeaux, enrichi du nom IANA pour ne pas
-// dépendre de la forme brute propre à chaque serveur.
-type drapeau struct {
+// Indicateur est un drapeau tel que himalaya le rend : la forme brute dépend du
+// serveur, le nom IANA non. C'est toujours celui-ci qu'on compare.
+type Indicateur struct {
 	Brut string `json:"raw"`
 	IANA string `json:"iana"`
 }
