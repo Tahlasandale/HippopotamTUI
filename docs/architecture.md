@@ -116,6 +116,26 @@ Trois raisons, dans l'ordre d'importance :
    la documentation ne peut pas mentir.
 3. **contribuer**. On peut ouvrir le projet sans avoir de compte mail.
 
+## Dépendances
+
+Neuf, toutes directes, toutes utiles :
+
+| Dépendance | Rôle |
+|---|---|
+| `bubbletea` | la boucle TUI : le modèle, les commandes, les touches |
+| `lipgloss` | le style, et la descente automatique en 256 puis 16 couleurs |
+| `glamour` | le rendu Markdown, quand un message le mérite |
+| `termenv` | la détection du terminal |
+| `reflow` | le repli du texte sur la largeur |
+| `bbolt` | le cache, en un seul fichier |
+| `cobra` | la ligne de commande, l'aide, les complétions, la page de manuel |
+| `toml` | la lecture du fichier de configuration |
+| `x/net` | l'analyse HTML, pour les messages qui n'ont pas de texte brut |
+
+`bubbles` a été écarté : le formulaire de rédaction est fait de trois champs et
+d'une liste de propositions, et les écrire directement donnait moins de code que
+les adapter. C'est le genre de décision que ce document existe pour expliquer.
+
 ## Le modèle
 
 Un seul modèle `ui.Modèle` décrit tout l'état : compte courant, boîte, page,
