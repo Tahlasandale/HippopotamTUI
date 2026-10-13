@@ -110,9 +110,11 @@ jobs:
         with:
           go-version: '1.24'
 
+      # Les clés d'une expression GitHub n'acceptent que l'alphabet ASCII :
+      # d'où « numero » sans accent, dans un pas qui reste en français.
       - name: Découper la version
         id: version
-        run: echo "numéro=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+        run: echo "numero=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
       - name: Compiler pour chaque plateforme
         run: |
@@ -137,7 +139,7 @@ jobs:
       - name: Créer la version
         uses: softprops/action-gh-release@v2
         with:
-          name: HippopotamTUI ${{ steps.version.outputs.numéro }}
+          name: HippopotamTUI ${{ steps.version.outputs.numero }}
           draft: true
           files: |
             hippo_*
