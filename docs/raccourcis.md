@@ -55,20 +55,24 @@ plus rapide pour aller de la réception aux envoyés.
 
 ## La rédaction
 
+Quatre champs : `De`, `À`, `Cc`, `Objet`.
+
 | Touche | Effet |
 |---|---|
-| `↑` `↓` | champ précédent, suivant |
-| `tab` | champ suivant, ou valider l'adresse proposée |
+| `↑` `↓` ou `tab` | champ précédent, suivant |
+| `←` `→` | sur le champ `De`, changer de compte d'envoi ; ailleurs, rien |
 | `entrée` | accepter l'adresse proposée sous le curseur |
 | `ctrl+n` `ctrl+p` | choisir une autre proposition |
-| `ctrl+r` | rouvrir le corps dans l'éditeur |
+| `ctrl+r` | écrire le corps dans l'éditeur |
 | `ctrl+s` | envoyer |
 | `échap` | abandonner, en gardant un brouillon |
 
-Trois champs seulement : `À`, `Cc` et `Objet`. Le corps ne s'édite pas dans le
-TUI, il s'édite dans votre éditeur — c'est là que vos raccourcis, vos
-corrections orthographiques et votre gestionnaire de fichiers fonctionnent
-normalement.
+Sur `c`, l'éditeur ne s'ouvre pas tout seul : le formulaire d'abord. Sur `r`,
+`a` et `t`, il s'ouvre aussitôt, parce qu'une réponse s'écrit presque toujours.
+
+Le corps ne s'édite pas dans le TUI, il s'édite dans votre éditeur — c'est là que
+vos raccourcis, vos corrections orthographiques et votre gestionnaire de fichiers
+fonctionnent normalement.
 
 ## Les filtres
 

@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -130,6 +131,12 @@ func (h *harnais) touche(speciale tea.KeyType) {
 func (h *harnais) ctrl(letter string) {
 	h.t.Helper()
 	h.toucher(tea.KeyMsg{Type: tea.KeyCtrlC})
+}
+
+// barreDuBas rend la ligne d'état du bas de l'écran.
+func (h *harnais) barreDuBas() string {
+	h.t.Helper()
+	return h.m.barreDuBas()
 }
 
 // vue rend l'écran et le normalise pour la comparaison.
@@ -565,8 +572,13 @@ func TestChangementDeChampDansLeFormulaire(t *testing.T) {
 	h.rune("r")
 	f := h.m.formulaire
 
+	// le cycle démarre sur De, puis descend vers les destinataires et l'objet
+	if f.champ != ChampDe {
+		t.Fatalf("champ initial = %v, veut le champ De", f.champ)
+	}
+	h.touche(tea.KeyDown)
 	if f.champ != ChampÀ {
-		t.Fatalf("champ initial = %v, veut le champ À", f.champ)
+		t.Errorf("champ = %v, veut À", f.champ)
 	}
 	h.touche(tea.KeyDown)
 	if f.champ != ChampCc {
@@ -577,8 +589,8 @@ func TestChangementDeChampDansLeFormulaire(t *testing.T) {
 		t.Errorf("champ = %v, veut Objet", f.champ)
 	}
 	h.touche(tea.KeyDown)
-	if f.champ != ChampÀ {
-		t.Errorf("champ = %v, veut un retour sur À", f.champ)
+	if f.champ != ChampDe {
+		t.Errorf("champ = %v, veut un retour sur De", f.champ)
 	}
 }
 
@@ -589,7 +601,7 @@ func TestSaisieDAdresseIncomplète(t *testing.T) {
 
 	h.rune("c")
 	f := h.m.formulaire
-	f.saisie = ""
+	f.entrerChamp(ChampÀ)
 	h.taper("alice")
 	h.touche(tea.KeyEnter)
 
@@ -607,7 +619,7 @@ func TestAutocomplétion(t *testing.T) {
 
 	f := h.m.formulaire
 	f.contacts = h.m.contacts
-	f.saisie = ""
+	f.entrerChamp(ChampÀ)
 	h.taper("almt")
 
 	if len(f.proposés) == 0 {
@@ -634,8 +646,7 @@ func TestEnvoi(t *testing.T) {
 
 	h.rune("c")
 	f := h.m.formulaire
-	f.saisie = "alice@example.org"
-	f.valider()
+	f.To = []string{"alice@example.org"}
 	f.Sujet = "Un message de test"
 	f.Corps = "Bonjour depuis les tests."
 
@@ -872,4 +883,308 @@ func TestCapturesReproductibles(t *testing.T) {
 			t.Errorf("capture %q n'est pas reproductible", capture.Nom)
 		}
 	}
+}
+
+// ---------------------------------------------------------------- rédaction
+//
+// Les tests qui suivent portent sur le parcours de rédaction tel qu'il a été
+// redessiné : le formulaire d'abord, l'éditeur sur demande, et un champ « De »
+// qui dit de quel compte le message part.
+
+// éditeurFactice écrit un corps connu dans le fichier qu'on lui passe, puis
+// sort. C'est un éditeur comme un autre. Il compte ses ouvertures, ce qui permet
+// de vérifier qu'il s'ouvre ou non sans rien ajouter au programme.
+func éditeurFactice(t *testing.T, corps string) (script string, ouvert func() int) {
+	t.Helper()
+	dossier := t.TempDir()
+	compteur := filepath.Join(dossier, "ouvertures")
+	script = filepath.Join(dossier, "editeur.sh")
+
+	contenu := "#!/bin/sh\necho x >> '" + compteur + "'\nprintf '%s' \"" + corps + "\" > \"$1\"\n"
+	if err := os.WriteFile(script, []byte(contenu), 0o700); err != nil {
+		t.Fatal(err)
+	}
+
+	ouvert = func() int {
+		contenu, err := os.ReadFile(compteur)
+		if err != nil {
+			return 0
+		}
+		return strings.Count(string(contenu), "\n")
+	}
+	return script, ouvert
+}
+
+// le fichier ouvert dans l'éditeur ne contient que le corps : plus d'en-têtes à
+// fillets, donc plus rien qui puisse être perdu en chemin.
+func TestLeFichierDeLEditionNeContientQueLeCorps(t *testing.T) {
+	env := himalaya.Envoi{
+		De:    "Orphin <orphin@protonmail.com>",
+		To:    []string{"alice@example.org"},
+		Sujet: "Réunion",
+	}
+
+	contenu := contenuDeLEditeur(env, "> la citation")
+
+	if strings.Contains(contenu, "À :") || strings.Contains(contenu, "Objet :") {
+		t.Errorf("le fichier contient encore des en-têtes :\n%s", contenu)
+	}
+	if !strings.Contains(contenu, "> la citation") {
+		t.Errorf("le fichier ne contient pas le corps :\n%s", contenu)
+	}
+}
+
+// le corps relu est pris tel quel, sans retraitement : ce qui est écrit dans
+// l'éditeur est ce qui part.
+func TestLeCorpsReluEstPrisTelQuel(t *testing.T) {
+	if got := contenuRelu("Bonjour,\r\n\r\nCordialement."); got != "Bonjour,\n\nCordialement." {
+		t.Errorf("contenuRelu = %q", got)
+	}
+	// un corps qui commence par une ligne d'en-tête n'est plus amputé : le
+	// fichier n'en contient plus, donc il n'y a plus rien à retirer.
+	if got := contenuRelu("Objet : réunion\n\nBonjour."); !strings.HasPrefix(got, "Objet : réunion") {
+		t.Errorf("contenuRelu = %q, le texte doit être rendu tel quel", got)
+	}
+}
+
+// écrire un message neuf n'ouvre pas l'éditeur : la place est faite pour que le
+// formulaire se lise avant de taper quoi que ce soit.
+func TestMessageNeufNouvrePasLEditeur(t *testing.T) {
+	h := nouveauHarnais(t)
+	script, ouvert := éditeurFactice(t, "")
+	h.m.cfg.Editor = script
+
+	h.rune("c")
+	h.vider()
+
+	if h.m.écran != ÉcranRédaction {
+		t.Fatalf("écran = %v, veut la rédaction", h.m.écran)
+	}
+	if ouvert() != 0 {
+		t.Errorf("l'éditeur s'est ouvert %d fois, il ne devait pas s'ouvrir", ouvert())
+	}
+}
+
+// répondre, en revanche, ouvre l'éditeur : le texte quoté attend et on y écrit
+// presque toujours.
+func TestReponseOuvreEditeur(t *testing.T) {
+	h := nouveauHarnais(t)
+	script, ouvert := éditeurFactice(t, "Merci pour votre message.")
+	h.m.cfg.Editor = script
+
+	h.rune("r")
+	h.vider()
+
+	if ouvert() != 1 {
+		t.Errorf("l'éditeur s'est ouvert %d fois, en veut 1", ouvert())
+	}
+	if h.m.formulaire.Corps != "Merci pour votre message." {
+		t.Errorf("Corps = %q, veut ce que l'éditeur a écrit", h.m.formulaire.Corps)
+	}
+}
+
+// et le corps écrit dans l'éditeur apparaît ensuite dans le formulaire.
+func TestLeCorpsEcritApparaitDansLeFormulaire(t *testing.T) {
+	h := nouveauHarnais(t)
+	script, _ := éditeurFactice(t, "Bonjour Alice,")
+	h.m.cfg.Editor = script
+
+	h.rune("c")
+	h.vider()
+	h.toucher(tea.KeyMsg{Type: tea.KeyCtrlR})
+	h.vider()
+
+	vue := h.vue()
+	if !strings.Contains(vue, "Bonjour Alice,") {
+		t.Errorf("la vue ne montre pas le corps écrit :\n%s", vue)
+	}
+}
+
+// le champ « De » propose les comptes, et le change avec les flèches.
+func TestChampDeProposeLesComptes(t *testing.T) {
+	h := nouveauHarnais(t)
+	h.rune("c")
+	h.vider()
+
+	f := h.m.formulaire
+	if f.champ != ChampDe {
+		t.Fatalf("champ initial = %v, veut le champ De", f.champ)
+	}
+	if len(f.identités) != 2 {
+		t.Fatalf("identités = %+v, en veut 2", f.identités)
+	}
+	if !strings.Contains(f.De, "orphin@protonmail.com") {
+		t.Errorf("De = %q, veut l'adresse du compte par défaut", f.De)
+	}
+	if f.Compte != "proton" {
+		t.Errorf("Compte = %q, veut le compte actif", f.Compte)
+	}
+
+	h.touche(tea.KeyRight)
+
+	if !strings.Contains(f.De, "meute.saintfrancois78@gmail.com") {
+		t.Errorf("De = %q, veut l'autre identité", f.De)
+	}
+	if f.Compte != "gmail" {
+		t.Errorf("Compte = %q, veut gmail : l'identité doit suivre le compte d'envoi", f.Compte)
+	}
+	if !strings.Contains(h.vue(), "gmail") {
+		t.Errorf("la vue ne montre pas le changement de compte :\n%s", h.vue())
+	}
+}
+
+// choisir une autre identité ne doit pas seulement changer l'en-tête : le
+// message doit partir par le bon serveur. C'est le compte qui change, et lui
+// porte l'identité.
+func TestChangerDIdentitéChangeLeCompteDEnvoi(t *testing.T) {
+	h := nouveauHarnais(t)
+	h.rune("c")
+	h.vider()
+
+	f := h.m.formulaire
+	f.To = []string{"alice@example.org"}
+	f.Sujet = "Test"
+
+	h.touche(tea.KeyRight)
+	h.toucher(tea.KeyMsg{Type: tea.KeyCtrlS})
+	h.vider()
+
+	if h.m.formulaire != nil {
+		t.Fatal("la rédaction aurait dû être fermée après l'envoi")
+	}
+}
+
+// les flèches ne doivent rien faire sur un champ texte : ellesIndented留给
+// someone qui types a recipient.
+func TestFlèchesInertesSurLesChampsTexte(t *testing.T) {
+	h := nouveauHarnais(t)
+	h.rune("c")
+	h.vider()
+
+	f := h.m.formulaire
+	f.saisie = "ali"
+	h.touche(tea.KeyRight)
+	h.touche(tea.KeyLeft)
+
+	if f.saisie != "ali" {
+		t.Errorf("saisie = %q, les flèches ne doivent pas la toucher", f.saisie)
+	}
+	if f.De != h.m.formulaire.De {
+		t.Error("les flèches ne doivent pas changer l'identité sur un champ texte")
+	}
+}
+
+// le cycle passe par les quatre champs, et revient au début.
+func TestCycleDeQuatreChamps(t *testing.T) {
+	h := nouveauHarnais(t)
+	h.rune("c")
+	h.vider()
+	f := h.m.formulaire
+
+	voulu := []Champ{ChampDe, ChampÀ, ChampCc, ChampSujet}
+	for _, attendu := range voulu {
+		if f.champ != attendu {
+			t.Fatalf("champ = %v, veut %v", f.champ, attendu)
+		}
+		h.touche(tea.KeyDown)
+	}
+	if f.champ != ChampDe {
+		t.Errorf("champ = %v, le cycle doit revenir au champ De", f.champ)
+	}
+
+	h.touche(tea.KeyUp)
+	if f.champ != ChampSujet {
+		t.Errorf("champ = %v, veut Objet en remontant", f.champ)
+	}
+}
+
+// le formulaire annonce ce qu'il attend, et l'invitation disparaît une fois
+// qu'il y a un corps.
+func TestInvitationAEcrire(t *testing.T) {
+	h := nouveauHarnais(t)
+	h.rune("c")
+	h.vider()
+
+	if !strings.Contains(h.vue(), "ctrl+r") {
+		t.Errorf("le formulaire n'invite pas à écrire :\n%s", h.vue())
+	}
+
+	h.toucher(tea.KeyMsg{Type: tea.KeyCtrlR})
+	h.vider()
+
+	if strings.Contains(h.vue(), "ctrl+r pour écrire") {
+		t.Errorf("l'invitation est restée alors qu'il y a un corps :\n%s", h.vue())
+	}
+}
+
+// la barre du bas de la rédaction doit tenir en une ligne, sans coupure : c'est
+// là que se trouve la réponse à « comment j'envoie ».
+func TestBarreDeLaRédactionSansTroncature(t *testing.T) {
+	h := nouveauHarnais(t)
+	h.rune("c")
+	h.vider()
+
+	barre := h.barreDuBas()
+	for _, attendu := range []string{"ctrl+s envoyer", "ctrl+r éditer", "échap abandonner"} {
+		if !strings.Contains(barre, attendu) {
+			t.Errorf("la barre ne montre pas %q : %s", attendu, barre)
+		}
+	}
+	if strings.Contains(barre, "…") {
+		t.Errorf("la barre est tronquée : %s", barre)
+	}
+}
+
+// appuyer sur c doit dire quelque chose pendant que himalaya prépare : le vide
+// d'une à deux secondes était le premier appel à l'aide.
+func TestPréparationAnnoncée(t *testing.T) {
+	h := nouveauHarnais(t)
+
+	// sans exécuter la commande : c'est l'état entre la frappe et la réponse de
+	// himalaya qu'on vérifie, ces deux secondes-là qui semblaient figées
+	h.envoyer(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("c")})
+
+	if !h.m.occupé {
+		t.Error("rien n'indique que la préparation est en cours")
+	}
+	if !strings.Contains(h.barreDuBas(), "préparation") {
+		t.Errorf("la barre ne dit rien : %q", h.barreDuBas())
+	}
+	h.vider()
+}
+
+// le titre du formulaire doit dire ce qu'on est en train de faire : « Nouveau
+// message » au-dessus d'une réponse induit en erreur.
+func TestTitreDuFormulaire(t *testing.T) {
+	cases := []struct {
+		touche string
+		voulu  string
+	}{
+		{"c", "Nouveau message"},
+		{"r", "Réponse"},
+		{"a", "Réponse à tous"},
+		{"t", "Transfert"},
+	}
+
+	for _, c := range cases {
+		h := nouveauHarnais(t)
+		h.m.cfg.Editor = éditeurSilencieux(t)
+		h.rune(c.touche)
+		h.vider()
+
+		vue := h.vue()
+		if !strings.Contains(vue, c.voulu) {
+			t.Errorf("après %q, la vue ne montre pas %q :\n%s", c.touche, c.voulu, vue)
+		}
+	}
+}
+
+// un éditeur qui ne fait rien, pour tester la rédaction sans écrire de corps.
+func éditeurSilencieux(t *testing.T) string {
+	t.Helper()
+	chemin := filepath.Join(t.TempDir(), "editeur.sh")
+	if err := os.WriteFile(chemin, []byte("#!/bin/sh\nexit 0\n"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	return chemin
 }

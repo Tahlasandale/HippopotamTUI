@@ -251,9 +251,24 @@ func (c *Client) Message(_ context.Context, _, boite, id string) ([]byte, error)
 	return []byte(parties), nil
 }
 
+// Identités de chaque compte de démonstration, comme sur une vraie machine où
+// chaque compte a son adresse.
+var identités = map[string]string{
+	"proton": "Orphin <orphin@protonmail.com>",
+	"gmail":  "Meute Saint-Francois <meute.saintfrancois78@gmail.com>",
+}
+
+// Identité d'un compte de démonstration.
+func identité(compte string) string {
+	if valeur, ok := identités[compte]; ok {
+		return valeur
+	}
+	return "Moi <moi@example.org>"
+}
+
 // Squelette fabrique un brouillon cohérent avec le jeu de démonstration.
-func (c *Client) Squelette(_ context.Context, origine himalaya.Origine, _, boite string) (himalaya.Brouillon, error) {
-	moi := "Orphin <orphin@protonmail.com>"
+func (c *Client) Squelette(_ context.Context, origine himalaya.Origine, compte, boite string) (himalaya.Brouillon, error) {
+	moi := identité(compte)
 
 	if origine.Kind == himalaya.Nouveau {
 		return himalaya.Brouillon{De: moi}, nil

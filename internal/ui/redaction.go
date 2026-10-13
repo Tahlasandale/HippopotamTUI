@@ -15,27 +15,43 @@ import (
 type Champ int
 
 const (
-	ChampÀ Champ = iota
+	ChampDe Champ = iota
+	ChampÀ
 	ChampCc
 	ChampSujet
 	nbChamps
 )
 
 var nomsChamps = map[Champ]string{
+	ChampDe:    "De",
 	ChampÀ:     "À",
 	ChampCc:    "Cc",
 	ChampSujet: "Objet",
 }
 
-// formulaire est l'écran de rédaction : les destinataires, l'objet, et le corps
-// déjà quoté par himalaya puis retravaillé dans l'éditeur choisi.
+// Identité est l'adresse d'expédition d'un compte, avec le compte qui porte le
+// serveur d'envoi.
+//
+// Les deux vont ensemble : choisir une adresse sans changer de compte reviendrait
+// à faire passer un message Gmail par le SMTP de Proton, et l'envoi échouerait
+// au dernier moment, après toute la rédaction.
+type Identité struct {
+	Compte  string
+	Adresse string
+}
+
+// formulaire est l'écran de rédaction : l'identité d'expédition, les
+// destinataires, l'objet, et le corps déjà quoté par himalaya puis retravaillé
+// dans l'éditeur choisi.
 type formulaire struct {
-	origine himalaya.Origine
-	De      string
-	To      []string
-	Cc      []string
-	Sujet   string
-	Corps   string
+	origine   himalaya.Origine
+	De        string
+	Compte    string
+	identités []Identité
+	To        []string
+	Cc        []string
+	Sujet     string
+	Corps     string
 
 	champ    Champ
 	saisie   string
@@ -79,22 +95,62 @@ func CompléterBrouillon(br himalaya.Brouillon, origine himalaya.Origine, messag
 // nouveauFormulaire initialise le formulaire à partir du squelette rendu par
 // himalaya. La rédaction s'ouvre immédiatement dans l'éditeur : c'est le geste
 // qu'on attend d'un « répondre », et l'utilisateur retrouve sesrepères dedans.
-func nouveauFormulaire(br himalaya.Brouillon, origine himalaya.Origine, carnet []contacts.Contact) *formulaire {
+func nouveauFormulaire(br himalaya.Brouillon, origine himalaya.Origine, carnet []contacts.Contact, identités []Identité, compte string) *formulaire {
 	f := &formulaire{
-		origine:  origine,
-		De:       br.De,
-		To:       br.To,
-		Cc:       br.Cc,
-		Sujet:    br.Sujet,
-		Corps:    br.Corps,
-		contacts: carnet,
-		ouvert:   true,
+		origine:   origine,
+		De:        br.De,
+		identités: identités,
+		To:        br.To,
+		Cc:        br.Cc,
+		Sujet:     br.Sujet,
+		Corps:     br.Corps,
+		contacts:  carnet,
+		ouvert:    true,
 	}
-	// Le champ À est actif et sa saisie charge ce qu'il contient déjà : sinon le
-	// formulaire s'ouvre vide alors que le squelette de himalaya est prêt.
-	f.entrerChamp(ChampÀ)
+	f.retenirCompte(compte, br.De)
+
+	// Le champ De est actif : c'est le premier ce qu'on veut savoir d'un
+	// message, avant même ses destinataires.
+	f.entrerChamp(ChampDe)
 	return f
 }
+
+// retenirCompte choisit le compte d'envoi par défaut. La liste des identités
+// fait foi quand elle connaît le compte ; sinon on s'appuie sur l'adresse que
+// himalaya a posée dans le squelette.
+func (f *formulaire) retenirCompte(compte, adresse string) {
+	for _, identité := range f.identités {
+		if identité.Compte == compte {
+			f.Compte, f.De = identité.Compte, identité.Adresse
+			return
+		}
+	}
+	f.Compte, f.De = compte, adresse
+}
+
+// changerIdentité passe à l'identité suivante ou précédente. Sans liste
+// d'identités, il ne se passe rien : il n'y a rien à choisir.
+func (f *formulaire) changerIdentité(delta int) bool {
+	if len(f.identités) < 2 {
+		return false
+	}
+
+	actuel := 0
+	for i, identité := range f.identités {
+		if identité.Compte == f.Compte {
+			actuel = i
+			break
+		}
+	}
+
+	suivant := (actuel + delta + len(f.identités)) % len(f.identités)
+	f.Compte, f.De = f.identités[suivant].Compte, f.identités[suivant].Adresse
+	return true
+}
+
+// estSélecteur signale les champs dont la valeur se choisit plutôt qu'elle ne
+// se tape.
+func (f *formulaire) estSélecteur(c Champ) bool { return c == ChampDe }
 
 // ChampSuivant désigne le champ suivant : les trois champs d'en-tête tournent en
 // boucle. Le corps ne s'y trouve pas, il s'édite dans l'éditeur et se lit ici.
@@ -107,6 +163,8 @@ func (f *formulaire) ChampPrécédent() Champ { return (f.champ + nbChamps - 1) 
 // la saisie modifie, et ce qui est recalculé en liste d'adresses à la sortie.
 func (f *formulaire) buffer(c Champ) string {
 	switch c {
+	case ChampDe:
+		return f.De
 	case ChampÀ:
 		return strings.Join(f.To, ", ")
 	case ChampCc:
@@ -128,6 +186,8 @@ func (f *formulaire) entrerChamp(c Champ) {
 // valider écrit la saisie courante dans les champs du formulaire.
 func (f *formulaire) valider() {
 	switch f.champ {
+	case ChampDe:
+		return
 	case ChampÀ:
 		f.To = analyserAdresses(f.saisie)
 	case ChampCc:
@@ -241,6 +301,9 @@ func (f *formulaire) versEnvoi(fichier string) himalaya.Envoi {
 // déjà validée pour les autres. Sans cette distinction, les trois champs
 // afficheraient la même chose.
 func (f *formulaire) affichée(c Champ) string {
+	if c == ChampDe {
+		return f.De
+	}
 	if f.champ == c {
 		return f.saisie
 	}

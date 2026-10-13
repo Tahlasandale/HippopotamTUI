@@ -99,7 +99,10 @@ func (m *Modèle) raccourcisDuMoment() string {
 	case ÉcranMessage:
 		touches = []string{"↑↓ défiler", "←→ message", "entrer suivant", "r répondre", "a à tous", "t transférer", "q liste", "? aide"}
 	case ÉcranRédaction:
-		touches = []string{"↑↓ champ", "tab suivant", "entendre proposition", "ctrl+r éditer", "ctrl+s envoyer", "échap abandonner"}
+		// Trois actions, trois touches, une ligne : c'est ici qu'on cherche la
+		// réponse à « comment j'envoie ». Le reste se devine à l'écran, le champ
+		// actif étant mis en évidence.
+		touches = []string{"ctrl+s envoyer", "ctrl+r éditer", "échap abandonner"}
 	case ÉcranFiltres:
 		touches = []string{"↑↓ critère", "←→ basculer", "entrée valider", "échap annuler"}
 	case ÉcranAide:
@@ -324,7 +327,7 @@ func (m *Modèle) vueRédaction() string {
 	}
 
 	var out []string
-	out = append(out, stTitre.Render("Nouveau message"))
+	out = append(out, stTitre.Render(titreDuFormulaire(m.formulaire)))
 	out = append(out, stLigneCourte.Render(strings.Repeat("─", m.largeur)))
 	out = append(out, rendreFormulaire(m.formulaire, m.largeur)...)
 
@@ -336,6 +339,21 @@ func (m *Modèle) vueRédaction() string {
 	out = append(out, "")
 	out = append(out, m.barreDuBas())
 	return lipgloss.JoinVertical(lipgloss.Left, out...)
+}
+
+// titreDuFormulaire dit ce qu'on est en train de faire. Écrire « Nouveau
+// message » au-dessus d'une réponse coûte cher : on lit le titre avant les
+// destinataires, et c'est le titre qu'on croit.
+func titreDuFormulaire(f *formulaire) string {
+	switch f.origine.Kind {
+	case himalaya.Reponse:
+		return "Réponse"
+	case himalaya.ReponseTout:
+		return "Réponse à tous"
+	case himalaya.Transfert:
+		return "Transfert"
+	}
+	return "Nouveau message"
 }
 
 func (m *Modèle) rendrePropositions() []string {

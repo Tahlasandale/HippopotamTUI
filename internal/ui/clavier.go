@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"fmt"
+
 	"github.com/Tahlasandale/HippopotamTUI/internal/himalaya"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -79,6 +81,10 @@ func signeFlèche(touche string) int {
 	case "down", "↓", "j", "ctrl+n":
 		return 1
 	case "up", "↑", "k", "ctrl+p":
+		return -1
+	case "right", "l", "tab":
+		return 1
+	case "left", "h", "shift+tab":
 		return -1
 	}
 	return 0
@@ -474,6 +480,18 @@ func (m *Modèle) auClavierRédaction(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		f.entrerChamp(f.ChampPrécédent())
 		return m, nil
 
+	case "left", "right":
+		// Les flèches latérales servent à choisir l'identité dexpédition, et
+		// seulement cela : sur un champ texte, elles ne doivent rien faire, sinon
+		// un destinataire saisi au clavier se retrouve coupé en deux.
+		if f.champ != ChampDe {
+			return m, nil
+		}
+		if f.changerIdentité(signeFlèche(msg.String())) {
+			m.annoncer(fmt.Sprintf("Part de %s.", f.De))
+		}
+		return m, nil
+
 	case "enter":
 		if f.accepterProposition() {
 			return m, nil
@@ -499,7 +517,9 @@ func (m *Modèle) auClavierRédaction(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	if msg.Type == tea.KeyRunes {
+	// Le champ De se choisit, il ne se tape pas : y écrire n'aurait aucun
+	// effet, et une adresse saisie à la main sans compte ne partirait jamais.
+	if msg.Type == tea.KeyRunes && f.champ != ChampDe {
 		f.saisie += msg.String()
 		f.modifié = true
 		f.actualiserPropositions()

@@ -1,43 +1,74 @@
 # Écrire un message
 
-## Ce qui se passe quand on appuie sur `c`
+## Ce qui se passe quand on appuie sur une touche
 
-1. himalaya prépare un squelette : l'adresse d'expédition, l'objet, un corps
-   vide
-2. `hippo` ouvre votre éditeur sur ce squelette, écrit dans un fichier
-   temporaire
-3. votre éditeur s'ouvre dessus, dans le terminal
-4. au retour, `hippo` relit le fichier, récupère le corps, et rouvre le
-   formulaire avec vos destinataires, votre objet et ce que vous venez d'écrire
-5. `ctrl+s` envoie, `échap` abandonne
+| Touche | Ce qui arrive |
+|---|---|
+| `c` | le formulaire s'ouvre, vide, et attend |
+| `r`, `a`, `t` | le formulaire s'ouvre, puis votre éditeur s'ouvre aussitôt sur la citation |
 
-C'est le geste attendu d'un « écrire » : on ne réécrit pas un éditeur de texte
-dans un TUI, on appelle celui qu'on a déjà.
+Répondre, c'est presque toujours écrire : l'éditeur s'ouvre donc sans attendre.
+Un message neuf, lui, mérite qu'on regarde d'abord ses destinataires et son
+objet — et rien ne s'ouvre dans le dos.
 
-## Le fichier temporaire
-
-Il s'ouvre ainsi :
+Le formulaire tient en quatre champs :
 
 ```
-# Ce fichier est un brouillon.
-# Enregistrer pour l'envoyer, vider et enregistrer pour l'abandonner.
+┌─ La rédaction d'une réponse ────────────────────────────────────────────────────────────────────
+│ Réponse                                                                                         │
+│ ────────────────────────────────────────────────────────────────────────────────────────────────
+│ De :   Orphin <orphin@protonmail.com>                                                            │
+│ À :    Commission Scolaire <scolaire@example.org>                                                │
+│ Cc :                                                                                             │
+│ Objet : Re: Rapport de la commission scolaire                                                    │
+│                                                                                                 │
+│ > Rapport de la commission scolaire                                                              │
+│                                                                                                 │
+│ ctrl+s envoyer  ·  ctrl+r éditer  ·  échap abandonner                                            │
+└──────────────────────────────────────────────────────────────────────────────────────────────────
+```
 
-De : Orphin <orphin@protonmail.com>
-À : alice@example.org
-Cc :
-Objet : Réunion
+`↑` `↓` ou `tab` passent d'un champ au suivant. `ctrl+r` ouvre le corps dans
+votre éditeur, `ctrl+s` envoie, `échap` abandonne.
 
+## Le champ « De »
+
+C'est le premier champ, parce que c'est la première question : de quel compte
+part ce message ? `←` et `→` passent d'un compte à l'autre.
+
+```
+De :   Orphin <orphin@protonmail.com>          ← →    De :   Meute Saint-Francois <meute@…>
+```
+
+Choisir une identité **change aussi le compte qui envoie**. Ce n'est pas une
+détail d'affichage : himalaya sort par le serveur du compte actif, et faire
+passer un message Gmail par le SMTP de Proton échouerait au dernier moment,
+après toute la rédaction. Le compte choisi et l'adresse qu'il porte vont donc
+ensemble.
+
+Pour connaître vos adresses sans lire votre configuration — qui contient vos
+mots de passe — `hippo` demande un squelette vide à himalaya au démarrage. C'est
+un calcul local, sans réseau.
+
+Pendant une rédaction, ce champ et la touche `S` font la même chose : les deux
+portent sur l'envoi, ni l'un ni l'autre ne change la boîte que vous consultez.
+
+## L'éditeur
+
+Il ne s'ouvre que sur le corps, et le fichier ne contient rien d'autre :
+
+```
 Bonjour,
 
 > Citation du message d'origine.
 ```
 
-Les lignes d'en-tête sont écrites par `hippo` et retirées du corps au retour. Le
-fichier est supprimé dans tous les cas, même si l'éditeur plante.
+Les destinataires et l'objet ne sont pas dans ce fichier. Ils se règlent dans le
+formulaire, où l'autocomplétion des adresses existe. Le fichier est supprimé
+dans tous les cas, même si l'éditeur plante.
 
-Modifier les en-têtes dans l'éditeur fonctionne, mais c'est peu pratique : le
-formulaire du TUI les propose avec autocomplétion, c'est là qu'il faut les
-changer.
+`ctrl+r` rouvre l'éditeur quand le corps ne vous convient pas, autant de fois
+que vous voulez.
 
 ## Répondre
 
@@ -108,9 +139,9 @@ adresse tapée à moitié est ignorée plutôt qu'envoyée en morceaux.
 
 ## Le transfert
 
-`t` ouvre un formulaire vide : un transfert ne se devine pas, il se choisit.
-Le message d'origine est encadré d'un séparateur, avec l'expéditeur, l'objet et
-la date.
+`t` ouvre un formulaire sans destinataire : un transfert ne se devine pas, il se
+choisit. Le message d'origine est encadré d'un séparateur, avec l'expéditeur,
+l'objet et la date.
 
 ## Les brouillons
 

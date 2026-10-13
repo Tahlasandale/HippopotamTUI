@@ -5,6 +5,24 @@ projet suit [le versionnement sémantique](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### Modifié
+
+- **Rédaction** : le formulaire s'ouvre d'abord, l'éditeur attend. Écrire un
+  message neuf ne lance plus micro dans le dos ; répondre le lance toujours, parce
+  qu'une réponse s'écrit presque toujours.
+- **Rédaction** : le fichier ouvert dans l'éditeur ne contient plus que le corps.
+  Les en-têtes qui y étaient écrits étaient retirés au retour sans un mot ;
+  ils se règlent dans le formulaire, où l'autocomplétion existe.
+- **Rédaction** : le formulaire porte un champ « De » qui dit de quel compte le
+  message part, et se change aux flèches. Choisir une identité change aussi le
+  compte qui envoie, pour que l'adresse et le serveur d'envoi concordent.
+- **Rédaction** : le titre du formulaire dit ce qu'on fait — Réponse, Réponse à
+  tous, Transfert — au lieu de « Nouveau message » partout.
+- **Rédaction** : la barre du bas tient sur une ligne, sans troncature, et
+  contient les trois seules actions : envoyer, éditer, abandonner.
+- **Préparation** : une rédaction annonce son préparation. L'écran ne semble
+  plus figé pendant une à deux secondes.
+
 ## [0.1.0] — 2026-10-13
 
 Première version : un pager de messagerie complet, au-dessus de himalaya.

@@ -21,8 +21,9 @@ import (
 
 type (
 	msgComptes struct {
-		comptes []himalaya.Compte
-		err     error
+		comptes   []himalaya.Compte
+		identités []Identité
+		err       error
 	}
 	msgBoîtes struct {
 		boîtes []himalaya.Boite
@@ -62,9 +63,31 @@ type (
 
 func (m *Modèle) chargerComptes() tea.Cmd {
 	return func() tea.Msg {
-		comptes, err := m.client.Comptes(context.Background())
-		return msgComptes{comptes: comptes, err: err}
+		ctx := context.Background()
+		comptes, err := m.client.Comptes(ctx)
+		if err != nil {
+			return msgComptes{err: err}
+		}
+		return msgComptes{comptes: comptes, identités: identitéDes(ctx, m.client, comptes)}
 	}
+}
+
+// identitéDes apprend l'adresse d'expédition de chaque compte.
+//
+// On demande à himalaya un squelette vide : c'est un calcul local, sans réseau,
+// et c'est la seule façon de connaître son adresse sans lire sa configuration —
+// qui contient les mots de passe. Un compte qui répond mal est simplement écarté
+// : on n'en tient pas au champ « De » pour le reste.
+func identitéDes(ctx context.Context, client himalaya.Client, comptes []himalaya.Compte) []Identité {
+	var identités []Identité
+	for _, cpt := range comptes {
+		br, err := client.Squelette(ctx, himalaya.Origine{Kind: himalaya.Nouveau}, cpt.Nom, "")
+		if err != nil || br.De == "" {
+			continue
+		}
+		identités = append(identités, Identité{Compte: cpt.Nom, Adresse: br.De})
+	}
+	return identités
 }
 
 func (m *Modèle) chargerBoîtes() tea.Cmd {
@@ -215,6 +238,11 @@ func (m *Modèle) préparerBrouillon(origine himalaya.Origine) tea.Cmd {
 	if origine.Kind == himalaya.Nouveau {
 		boîte = ""
 	}
+
+	// himalaya met une à deux secondes à répondre. Sans rien afficher, l'écran
+	// semble figé, et on appuie sur une touche au hasard.
+	m.occupé = true
+	m.attente = "préparation"
 	return func() tea.Msg {
 		br, err := m.client.Squelette(context.Background(), origine, compte, boîte)
 		return msgBrouillon{brouillon: br, origine: origine, err: err}
@@ -245,7 +273,7 @@ func (m *Modèle) lancerÉditeur() tea.Cmd {
 		defer os.RemoveAll(répertoire)
 
 		fichier := filepath.Join(répertoire, "message.eml")
-		if err := os.WriteFile(fichier, []byte(rendreBrouillonLisible(brouillon, contenu)), 0o600); err != nil {
+		if err := os.WriteFile(fichier, []byte(contenuDeLEditeur(brouillon, contenu)), 0o600); err != nil {
 			return msgÉditée{err: err}
 		}
 
@@ -265,7 +293,7 @@ func (m *Modèle) lancerÉditeur() tea.Cmd {
 		if err != nil {
 			return msgÉditée{err: err}
 		}
-		return msgÉditée{texte: extractionCorps(string(lu))}
+		return msgÉditée{texte: contenuRelu(string(lu))}
 	}
 }
 
@@ -305,7 +333,7 @@ func (m *Modèle) enregistrerBrouillon() tea.Cmd {
 		return nil
 	}
 	env := m.formulaire.versEnvoi("")
-	compte, boîte := m.compte, m.boîte
+	compte, boîte := m.compteDEnvoi(), m.boîte
 	if env.Origine.Kind == himalaya.Nouveau {
 		boîte = ""
 	}
@@ -392,57 +420,28 @@ func détecterÉditeur(valeur string) string {
 	return ""
 }
 
-// rendreBrouillonLisible écrit un fichier que l'éditeur ouvre agréablement :
-// entêtes en clair au début, corps quoté en dessous.
-func rendreBrouillonLisible(env himalaya.Envoi, corps string) string {
-	var out strings.Builder
-	out.WriteString("# Ce fichier est un brouillon.\n")
-	out.WriteString("# Enregistrer pour l'envoyer, vider et enregistrer pour l'abandonner.\n\n")
-	if env.De != "" {
-		fmt.Fprintf(&out, "De : %s\n", env.De)
-	}
-	if len(env.To) > 0 {
-		fmt.Fprintf(&out, "À : %s\n", strings.Join(env.To, ", "))
-	}
-	if len(env.Cc) > 0 {
-		fmt.Fprintf(&out, "Cc : %s\n", strings.Join(env.Cc, ", "))
-	}
-	if env.Sujet != "" {
-		fmt.Fprintf(&out, "Objet : %s\n", env.Sujet)
-	}
-	out.WriteString("\n")
-	out.WriteString(corps)
-	out.WriteString("\n")
-	return out.String()
-}
-
-// extractionCorps retire du brouillon les lignes d'en-tête que le TUI a
-// lui-même écrites, pour ne pas les laisser dans le corps du message.
+// contenuDeLEditeur écrit le fichier que l'éditeur ouvre.
 //
-// Le fichier s'ouvre ainsi : des commentaires, les en-têtes, une ligne vide, puis
-// le corps. On saute tout ce qui précède la première vraie ligne.
-func extractionCorps(source string) string {
-	lignes := strings.Split(strings.ReplaceAll(source, "\r\n", "\n"), "\n")
-
-	début := 0
-	for ; début < len(lignes); début++ {
-		ligne := strings.TrimSpace(lignes[début])
-		if ligne == "" || strings.HasPrefix(ligne, "#") || estEnTêteDeBrouillon(ligne) {
-			continue
-		}
-		break
+// Il ne contient **que le corps**. Les en-têtes ne sont plus écrits dedans, et
+// c'est volontaire : ils se règlent dans le formulaire, où l'autocomplétion des
+// adresses existe. Les faire apparaître dans l'éditeur donnait l'impression
+// qu'on pouvait les y changer, et ils étaient sans doute retirés en silence au
+// retour — le pire des deux mondes.
+func contenuDeLEditeur(env himalaya.Envoi, corps string) string {
+	if corps == "" {
+		return ""
 	}
-	return strings.TrimSpace(strings.Join(lignes[début:], "\n"))
+	return corps
 }
 
-// estEnTêteDeBrouillon reconnaît les lignes d'en-tête qu'on a écrites nous-mêmes.
-func estEnTêteDeBrouillon(ligne string) bool {
-	for _, préfixe := range []string{"De : ", "À : ", "Cc : ", "Bcc : ", "Objet : "} {
-		if strings.HasPrefix(ligne, préfixe) {
-			return true
-		}
-	}
-	return false
+// contenuRelu prend le fichier de l'éditeur tel quel, aux fins de ligne près.
+// Rien n'est retiré : ce qui est écrit dans l'éditeur est ce qui partira.
+func contenuRelu(source string) string {
+	return strings.TrimSpace(normaliserLignes(source))
+}
+
+func normaliserLignes(source string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(source, "\r\n", "\n"), "\r", "\n")
 }
 
 // marquerLuSansRafraîchir met à jour la ligne courante sans repasser par le

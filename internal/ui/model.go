@@ -54,10 +54,11 @@ type Modèle struct {
 	cfg     config.Config
 	journal *Journal
 
-	comptes []himalaya.Compte
-	compte  string
-	boîtes  []himalaya.Boite
-	boîte   string
+	comptes   []himalaya.Compte
+	identités []Identité
+	compte    string
+	boîtes    []himalaya.Boite
+	boîte     string
 
 	enveloppes        []himalaya.Enveloppe
 	curseur           int
@@ -148,6 +149,7 @@ func (m *Modèle) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.comptes = msg.comptes
+		m.identités = msg.identités
 		nom, _ := himalaya.CompteParDéfaut(msg.comptes)
 		if nom != "" {
 			m.compte = nom
@@ -202,9 +204,16 @@ func (m *Modèle) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		br := CompléterBrouillon(msg.brouillon, msg.origine, m.message)
-		m.formulaire = nouveauFormulaire(br, msg.origine, m.contacts)
+		m.formulaire = nouveauFormulaire(br, msg.origine, m.contacts, m.identités, m.compte)
 		m.écran = ÉcranRédaction
-		return m, m.lancerÉditeur()
+
+		// Répondre, c'est presque toujours écrire : l'éditeur s'ouvre donc
+		// tout de suite. Un message neuf, au contraire, mérite qu'on regarde
+		// d'abord le formulaire, ses destinataires et son objet.
+		if msg.origine.Kind != himalaya.Nouveau {
+			return m, m.lancerÉditeur()
+		}
+		return m, nil
 
 	case msgEnvoyé:
 		m.occupé = false
@@ -328,6 +337,18 @@ func (m *Modèle) envelopeCourante() *himalaya.Enveloppe {
 		return nil
 	}
 	return &m.enveloppes[m.curseur]
+}
+
+// compteDEnvoi est le compte par lequel partira le message en cours.
+//
+// Ce n'est pas forcément le compte affiché : choisir une identité dans le
+// formulaire change le compte d'envoi, et rien d'autre. La boîte, elle, reste
+// celle d'où vient le message auquel on répond.
+func (m *Modèle) compteDEnvoi() string {
+	if m.formulaire != nil && m.formulaire.Compte != "" {
+		return m.formulaire.Compte
+	}
+	return m.compte
 }
 
 // indexDeBoîte donne la position d'une boîte dans la liste.

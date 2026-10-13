@@ -105,6 +105,24 @@ Le carnet n'est pas reconstruit à chaque lancement : une fois par semaine, pour
 ne pas faire cinq cents requêtes à un serveur de messagerie au démarrage. Après un
 `hippo contacts`, `R` recharge la liste.
 
+## Le champ « De » ne propose qu'un compte
+
+C'est normal quand on n'a qu'un compte de messagerie. Si vous en avez plusieurs
+et qu'un seul apparaît, c'est que les identités n'ont pas toutes été apprises.
+
+Elles sont découvertes au démarrage en demandant un squelette vide à himalaya —
+un calcul local, sans réseau, et sans lire votre configuration. Un compte qui
+échoue à ce moment-là est simplement écarté de la liste ; le champ reste
+affiché et n'est pas modifiable, sans conséquence : le message part par le
+compte actif.
+
+Pour vérifier ce qu'himalaya répond :
+
+```sh
+himalaya message compose --json -a proton
+himalaya message compose --json -a gmail
+```
+
 ## L'éditeur ne s'ouvre pas
 
 Dans l'ordre :
