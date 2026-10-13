@@ -3,8 +3,10 @@ package ui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Tahlasandale/HippopotamTUI/internal/config"
+	"github.com/Tahlasandale/HippopotamTUI/internal/demo"
 	"github.com/Tahlasandale/HippopotamTUI/internal/himalaya"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -27,6 +29,8 @@ func Capturer(client himalaya.Client, largeur, hauteur int) []Capture {
 	cfg.Editor = "true" // aucune capture ne doit ouvrir un éditeur
 
 	m := Nouveau(client, nil, cfg, true)
+	m.journal.Fixer(func() time.Time { return demo.InstantFigé })
+
 	modèle, _ := m.Update(tea.WindowSizeMsg{Width: largeur, Height: hauteur})
 	m = modèle.(*Modèle)
 	file := jouer(m, []tea.Cmd{m.Init()})

@@ -27,6 +27,25 @@ type Journal struct {
 	maximum int
 	fichier string
 	noyau   []string
+
+	// maintenant est l'horloge du journal. Elle est injectable pour que les
+	// captures de documentation soient reproductibles d'une fois sur l'autre :
+	// un horodatage qui change à chaque exécution rendrait la CI inutilisable.
+	maintenant func() time.Time
+}
+
+// Fixer l'horloge rend le journal reproductible.
+func (j *Journal) Fixer(maintenant func() time.Time) {
+	if maintenant != nil {
+		j.maintenant = maintenant
+	}
+}
+
+func (j *Journal) horloge() time.Time {
+	if j.maintenant != nil {
+		return j.maintenant()
+	}
+	return time.Now()
 }
 
 // NouveauJournal crée un journal en mémoire, rattaché au fichier de journal si
@@ -52,7 +71,7 @@ func (j *Journal) ajouter(niveau, texte string) {
 	if j == nil {
 		return
 	}
-	j.lignes = append(j.lignes, ligneJournal{quand: time.Now(), niveau: niveau, texte: texte})
+	j.lignes = append(j.lignes, ligneJournal{quand: j.horloge(), niveau: niveau, texte: texte})
 	if len(j.lignes) > j.maximum {
 		j.lignes = j.lignes[len(j.lignes)-j.maximum:]
 	}

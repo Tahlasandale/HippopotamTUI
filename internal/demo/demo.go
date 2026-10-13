@@ -24,11 +24,21 @@ type Client struct {
 	reçues   []string
 }
 
-// Nouveau fabrique un jeu de messages plausible.
-func Nouveau() *Client {
-	now := time.Now()
+// InstantFigé est la date de référence du jeu figé. Elle est Fixed dans le passé
+// assez loin pour que l'affichage ne dépende jamais du jour où la capture est
+// faite : une capture reproductible est une capture vérifiable par la CI.
+var InstantFigé = time.Date(2024, time.March, 10, 9, 15, 0, 0, time.UTC)
+
+// Nouveau fabrique un jeu de messages plausible, daté à l'instant présent.
+func Nouveau() *Client { return nouveau(time.Now()) }
+
+// Figé fabrique le même jeu à une date fixe. C'est ce qu'utilise
+// « hippo capture » : deux exécutions produisent deux fichiers identiques.
+func Figé() *Client { return nouveau(InstantFigé) }
+
+func nouveau(maintenant time.Time) *Client {
 	journal := func(jours, heures int) string {
-		return now.AddDate(0, 0, -jours).Add(-time.Duration(heures) * time.Hour).Format(time.RFC1123Z)
+		return maintenant.AddDate(0, 0, -jours).Add(-time.Duration(heures) * time.Hour).Format(time.RFC1123Z)
 	}
 
 	modèles := []struct {

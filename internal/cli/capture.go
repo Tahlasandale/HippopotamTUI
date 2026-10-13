@@ -38,7 +38,7 @@ d'écran qui vieillissent mal.`,
 				return err
 			}
 
-			captures := ui.Capturer(demo.Nouveau(), largeur, hauteur)
+			captures := ui.Capturer(demo.Figé(), largeur, hauteur)
 			for _, c := range captures {
 				texte := ui.EnTeur(c.Intitulé, c.Texte)
 				chemin := filepath.Join(destination, c.Nom+".txt")

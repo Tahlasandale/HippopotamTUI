@@ -9,16 +9,16 @@
 │  c         écrire un message                                                                    
 │  ?         tous les raccourcis                                                                  
 │                                                                                                 
-│ • 21:23 Commission Scolaire    📎 Rapport de la commission scolaire                             
-│ • 17:23 Mairie                 Réunion du conseil municipal                                     
-│   12/10 Scolarité              Votre attestation d'inscription                                  
-│ ★ 11/10 Emploi                 Candidature reçue                                                
-│   10/10 Énergie                📎 Facture du mois                                               
-│   09/10 Association            Invitation à l'assemblée générale                                
-│   07/10 Info                   Newsletter du service                                            
-│   06/10 Carla                  Réponse à votre message                                          
-│   04/10 Sécurité               Mot de passe expiré                                              
-│   01/10 Groupe                 📎 Photo de la sortie                                            
+│ • 10/03 Commission Scolaire    📎 Rapport de la commission scolaire                             
+│ • 10/03 Mairie                 Réunion du conseil municipal                                     
+│   09/03 Scolarité              Votre attestation d'inscription                                  
+│ ★ 08/03 Emploi                 Candidature reçue                                                
+│   07/03 Énergie                📎 Facture du mois                                               
+│   06/03 Association            Invitation à l'assemblée générale                                
+│   04/03 Info                   Newsletter du service                                            
+│   03/03 Carla                  Réponse à votre message                                          
+│   01/03 Sécurité               Mot de passe expiré                                              
+│   27/02 Groupe                 📎 Photo de la sortie                                            
 │                                                                                                 
 │ ↑↓ naviguer  ·  ←→ boîte  ·  entrer lire  ·  r répondre  ·  a à tous  ·  t transférer  ·  …     
 └──────────────────────────────────────────────────────────────────────────────────────────────────

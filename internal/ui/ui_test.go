@@ -778,3 +778,98 @@ func TestTransfertEncadré(t *testing.T) {
 		t.Errorf("To = %v, un transfert n'a personne en face", br.To)
 	}
 }
+
+// déplacer un message vers une autre boîte doit le faire disparaître de la liste
+// immédiate, sans attendre le serveur.
+func TestDéplacerVersUneBoîte(t *testing.T) {
+	h := nouveauHarnais(t)
+	avant := len(h.m.enveloppes)
+	objet := h.m.enveloppes[0].Sujet
+
+	h.rune("s")
+	if h.m.écran != ÉcranChoix {
+		t.Fatalf("écran = %v, veut le sélecteur", h.m.écran)
+	}
+
+	h.touche(tea.KeyDown) // Sent
+	h.touche(tea.KeyEnter)
+	h.vider()
+
+	if len(h.m.enveloppes) != avant-1 {
+		t.Errorf("il reste %d messages, veut %d", len(h.m.enveloppes), avant-1)
+	}
+	for _, env := range h.m.enveloppes {
+		if env.Sujet == objet {
+			t.Error("le message déplacé est encore dans la liste")
+		}
+	}
+	if !strings.Contains(h.vue(), "Déplacé vers") {
+		t.Errorf("la vue n'annonce pas le déplacement :\n%s", h.vue())
+	}
+}
+
+// après un déplacement, le curseur doit rester sur une ligne valide.
+func TestCurseurAprèsSuppression(t *testing.T) {
+	h := nouveauHarnais(t)
+
+	// Le nombre est pris une fois pour toutes : la condition de boucle relirait
+	// une liste qui rétrécit, et s'arrêterait avant d'avoir tout vidé.
+	total := len(h.m.enveloppes) + 2
+	for i := 0; i < total; i++ {
+		h.rune("d")
+		h.vider()
+	}
+
+	if len(h.m.enveloppes) != 0 {
+		t.Fatalf("il reste %d messages", len(h.m.enveloppes))
+	}
+	if h.m.curseur != 0 {
+		t.Errorf("curseur = %d, veut 0", h.m.curseur)
+	}
+	if h.m.View() == "" {
+		t.Error("la vue est vide sur une boîte vidée")
+	}
+}
+
+// une liste filtrée sans résultat doit le dire, plutôt que d'afficher le vide.
+func TestListeFiltréeVide(t *testing.T) {
+	h := nouveauHarnais(t)
+
+	h.rune("/")
+	h.taper("personne-nexiste-pas")
+	h.touche(tea.KeyEnter)
+	h.vider()
+
+	if len(h.m.enveloppes) != 0 {
+		t.Skip("le client de démonstration ne filtre pas, la liste reste pleine")
+	}
+	if !strings.Contains(h.vue(), "Aucun message ne correspond") {
+		t.Errorf("la vue ne l'explique pas :\n%s", h.vue())
+	}
+}
+
+// Les captures de la documentation sont vérifiées par la CI : si l'affichage
+// change sans que « hippo capture » ait été relancé, la CI échoue. Cela ne
+// tient que si deux exécutions donnent exactement le même texte, horloge et
+// dates comprises.
+func TestCapturesReproductibles(t *testing.T) {
+	première := Capturer(demo.Figé(), 96, 30)
+	seconde := Capturer(demo.Figé(), 96, 30)
+
+	voulu := []string{"accueil", "liste", "message", "redaction", "filtres", "journal", "aide"}
+	if len(première) != len(voulu) {
+		t.Fatalf("%d captures, veut %d", len(première), len(voulu))
+	}
+
+	for i, capture := range première {
+		if capture.Nom != voulu[i] {
+			t.Errorf("capture %d = %q, veut %q", i, capture.Nom, voulu[i])
+		}
+		if strings.TrimSpace(capture.Texte) == "" {
+			t.Errorf("capture %q vide", capture.Nom)
+		}
+		if capture.Texte != seconde[i].Texte {
+			t.Errorf("capture %q n'est pas reproductible", capture.Nom)
+		}
+	}
+}
