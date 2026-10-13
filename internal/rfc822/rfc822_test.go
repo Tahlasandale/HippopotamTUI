@@ -203,3 +203,89 @@ func TestSansSujet(t *testing.T) {
 		t.Errorf("Sujet = %q, veut vide", msg.Sujet)
 	}
 }
+
+// une partie peut déclarer deux fois Content-Type — un multipart puis un texte —
+// et c'est le second qui décrit réellement le contenu. La Norme ne prévoit rien
+// pour ce cas, mais les envois réels le produisent, et afficher un message vide
+// serait pire que de lire ce qui est là.
+func TestContentTypeEnDouble(t *testing.T) {
+	brut := "Message-Id: <liste@example.org>\r\n" +
+		"From: <mailer@lists.example.org>\r\n" +
+		"Subject: Confirmation\r\n" +
+		"Content-Type: multipart/mixed;\r\n boundary=externe\r\n" +
+		" charset=utf-8\r\n" +
+		"\r\n" +
+		"--externe\r\n" +
+		"Content-Type: multipart/mixed;\r\n boundary=interne\r\n" +
+		" charset=utf-8\r\n" +
+		"\r\n" +
+		"Content-Transfer-Encoding: quoted-printable\r\n" +
+		"Content-Type: text/plain; charset=UTF-8; format=flowed\r\n" +
+		"\r\n" +
+		"Votre inscription est confirm=C3=A9e.\r\n" +
+		"--interne--\r\n" +
+		"--externe--\r\n"
+
+	msg, err := Analyser([]byte(brut))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(msg.Corps, "Votre inscription est confirmée.") {
+		t.Errorf("Corps = %q, le texte était pourtant bien là", msg.Corps)
+	}
+	if msg.De != "mailer@lists.example.org" {
+		t.Errorf("De = %q, veut l'adresse sans chevrons", msg.De)
+	}
+}
+
+// plusieurs destinataires sur un seul en-tête.
+func TestDestinatairesMultiples(t *testing.T) {
+	brut := "From: a@b.c\r\nTo: Alice <alice@example.org>, bob@example.org\r\nCc: \"Carla\" <carla@example.org>\r\nSubject: x\r\n\r\ncorps\r\n"
+	msg, err := Analyser([]byte(brut))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if msg.Vers != "Alice <alice@example.org>, bob@example.org" {
+		t.Errorf("Vers = %q", msg.Vers)
+	}
+	if msg.Cc != "Carla <carla@example.org>" {
+		t.Errorf("Cc = %q", msg.Cc)
+	}
+}
+
+// mime.ParseMediaType est strict : il refuse « boundary=x charset=y ». La
+// frontière doit pourtant être retrouvée, sinon le message s'affiche avec ses
+// propres en-têtes.
+func TestParamètreSansValeur(t *testing.T) {
+	typeMedia, params := typeEtParams("multipart/mixed; boundary=abc123 charset=utf-8")
+
+	if typeMedia != "multipart/mixed" {
+		t.Errorf("typeMedia = %q", typeMedia)
+	}
+	if params["boundary"] != "abc123" {
+		t.Errorf("boundary = %q, veut abc123", params["boundary"])
+	}
+}
+
+// une pièce jointe sans nom de fichier reste une pièce jointe.
+func TestPièceJointeSansNom(t *testing.T) {
+	brut := "Content-Type: multipart/mixed; boundary=c\r\n\r\n" +
+		"--c\r\nContent-Type: text/plain\r\n\r\ncorps\r\n" +
+		"--c\r\nContent-Type: application/pdf\r\nContent-Disposition: attachment\r\n" +
+		"Content-Transfer-Encoding: base64\r\n\r\nJVBERi0xLjQ=\r\n" +
+		"--c--\r\n"
+
+	msg, err := Analyser([]byte(brut))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(msg.Pièces) != 1 {
+		t.Fatalf("Pièces = %+v, veut une pièce", msg.Pièces)
+	}
+	if msg.Pièces[0].Type != "application/pdf" {
+		t.Errorf("Type = %q", msg.Pièces[0].Type)
+	}
+	if !strings.Contains(msg.Corps, "corps") {
+		t.Errorf("Corps = %q", msg.Corps)
+	}
+}

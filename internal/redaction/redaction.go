@@ -104,31 +104,82 @@ func ensemble(liste []string) map[string]bool {
 	return out
 }
 
-// SujetReponse préfixe l'objet d'un seul Re:, quelle que soit la façon dont
-// l'original l'était déjà écrit.
-func SujetReponse(sujet string) string {
+// préfixesReconnus liste les préfixes d'objet déjà posés, dans toutes leurs
+// écritures courantes. « RE : » et « Re: » sont les deux formes qu'on trouve
+// dans la nature, et un message peut en porter plusieurs à la suite.
+var préfixesReconnus = []string{"re :", "re:", "tr :", "tr:", "aw :", "aw:", "fw :", "fwd :", "fwd:", "fw:"}
+
+// sansPréfixes retire tous les préfixes d'objet déjà posés.
+func sansPréfixes(sujet string) string {
 	nettoye := strings.TrimSpace(sujet)
-	for _, préfixe := range []string{"re:", "re :"} {
-		if len(nettoye) >= len(préfixe) && strings.EqualFold(nettoye[:len(préfixe)], préfixe) {
-			return "Re:" + nettoye[len(préfixe):]
+	for {
+		trouvé := false
+		for _, préfixe := range préfixesReconnus {
+			if len(nettoye) >= len(préfixe) && strings.EqualFold(nettoye[:len(préfixe)], préfixe) {
+				nettoye = strings.TrimSpace(nettoye[len(préfixe):])
+				trouvé = true
+				break
+			}
+		}
+		if !trouvé {
+			return nettoye
 		}
 	}
+}
+
+// SujetReponse ramène l'objet à un seul « Re: », quel que soit le nombre de
+// préfixes qu'il portait déjà : répondre à un message qui commence par « Re : »
+// ne doit pas produire « Re: Re : ».
+func SujetReponse(sujet string) string {
+	nettoye := sansPréfixes(sujet)
 	if nettoye == "" {
 		return "Re:"
 	}
 	return "Re: " + nettoye
 }
 
-// SujetTransfert préfixe l'objet d'un seul Fwd:.
+// SujetTransfert fait de même pour un transfert.
 func SujetTransfert(sujet string) string {
-	nettoye := strings.TrimSpace(sujet)
-	if len(nettoye) >= 4 && strings.EqualFold(nettoye[:4], "fwd:") {
-		return "Fwd:" + nettoye[4:]
-	}
+	nettoye := sansPréfixes(sujet)
 	if nettoye == "" {
 		return "Fwd:"
 	}
 	return "Fwd: " + nettoye
+}
+
+// Citer préfixe chaque ligne du texte d'origine, comme le fait une réponse
+// dans tous les clients de messagerie.
+func Citer(origine string) string {
+	if origine == "" {
+		return ""
+	}
+	lignes := strings.Split(strings.ReplaceAll(origine, "\r\n", "\n"), "\n")
+	for i, ligne := range lignes {
+		ligne = strings.TrimRight(ligne, " ")
+		if ligne == "" {
+			lignes[i] = ">"
+			continue
+		}
+		lignes[i] = "> " + ligne
+	}
+	return strings.Join(lignes, "\n")
+}
+
+// CiterPourTransfert encadre le message d'origine d'un séparateur lisible.
+func CiterPourTransfert(origine, expéditeur, objet, date string) string {
+	var b strings.Builder
+	b.WriteString("-------- Message transféré --------\n")
+	fmt.Fprintf(&b, "De : %s\n", expéditeur)
+	if objet != "" {
+		fmt.Fprintf(&b, "Objet : %s\n", objet)
+	}
+	if date != "" {
+		fmt.Fprintf(&b, "Date : %s\n", date)
+	}
+	b.WriteString("\n")
+	b.WriteString(strings.TrimRight(origine, "\n"))
+	b.WriteString("\n")
+	return b.String()
 }
 
 // Tronquer coupe un objet à la largeur disponible, au mot le plus proche, en

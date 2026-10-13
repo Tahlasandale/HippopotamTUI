@@ -1,0 +1,50 @@
+┌─ Les raccourcis ────────────────────────────────────────────────────────────────────────────────
+│ Raccourcis                                                                                      
+│ ────────────────────────────────────────────────────────────────────────────────────────────────
+│                                                                                                 
+│ Liste                                                                                           
+│ ↑ k        ligne précédente                                                                     
+│ ↓ j        ligne suivante                                                                       
+│ ← →        boîte précédente ou suivante                                                         
+│ début fin  première ou dernière ligne                                                           
+│ pg↑ pg↓    écran précédent ou suivant                                                           
+│ entrée     ouvrir le message                                                                    
+│ M entrée   message suivant sans repasser par la liste                                           
+│ v          marquer lu ou non lu                                                                 
+│ F          marquer ou démarquer                                                                 
+│ d          mettre à la corbeille                                                                
+│ s          déplacer vers une boîte                                                              
+│ m          changer de boîte                                                                     
+│ S          changer de compte                                                                    
+│ c          écrire un nouveau message                                                            
+│ r          répondre                                                                             
+│ a          répondre à tous                                                                      
+│ t          transférer                                                                           
+│ /          filtres guidés                                                                       
+│ R          rafraîchir la liste                                                                  
+│ J          journal des appels                                                                   
+│ ?          cette aide                                                                           
+│ q          quitter                                                                              
+│                                                                                                 
+│ Message                                                                                         
+│ ↑ ↓        défiler                                                                              
+│ ← →        message précédent ou suivant                                                         
+│ entrée n   message suivant                                                                      
+│ début fin  haut ou bas du message                                                               
+│ v          marquer lu ou non lu                                                                 
+│ d          mettre à la corbeille                                                                
+│ r a t      répondre, à tous, transférer                                                         
+│ q          retour à la liste                                                                    
+│                                                                                                 
+│ Rédaction                                                                                       
+│ ↑ ↓     champ précédent ou suivant                                                              
+│ tab     champ suivant, ou valider une proposition                                               
+│ entrée  accepter l'adresse proposée                                                             
+│ ctrl+r  ouvrir le corps dans l'éditeur                                                          
+│ ctrl+s  envoyer                                                                                 
+│ échap   abandonner, en gardant un brouillon                                                     
+│                                                                                                 
+│ Mode démonstration : aucun compte réel n'est utilisé.                                           
+│                                                                                                 
+│ échap retour                                                                                    
+└──────────────────────────────────────────────────────────────────────────────────────────────────

@@ -1,0 +1,24 @@
+┌─ Le premier lancement ──────────────────────────────────────────────────────────────────────────
+│ hippo · proton / Inbox                                                                      1/10
+│ ────────────────────────────────────────────────────────────────────────────────────────────────
+│ Bienvenue dans HippopotamTUI. Les flèches naviguent, les lettres agissent.                      
+│                                                                                                 
+│  ↑ ↓       se déplacer dans la liste                                                            
+│  entrée    ouvrir le message                                                                    
+│  r  a  t   répondre, à tous, transférer                                                         
+│  c         écrire un message                                                                    
+│  ?         tous les raccourcis                                                                  
+│                                                                                                 
+│ • ??/?? Commission Scolaire    📎 Rapport de la commission scolaire                             
+│ • ??/?? Mairie                 Réunion du conseil municipal                                     
+│   ??/?? Scolarité              Votre attestation d'inscription                                  
+│ ★ ??/?? Emploi                 Candidature reçue                                                
+│   ??/?? Énergie                📎 Facture du mois                                               
+│   ??/?? Association            Invitation à l'assemblée générale                                
+│   ??/?? Info                   Newsletter du service                                            
+│   ??/?? Carla                  Réponse à votre message                                          
+│   ??/?? Sécurité               Mot de passe expiré                                              
+│   ??/?? Groupe                 📎 Photo de la sortie                                            
+│                                                                                                 
+│ ↑↓ naviguer  ·  ←→ boîte  ·  entrer lire  ·  r répondre  ·  a à tous  ·  t transférer  ·  …     
+└──────────────────────────────────────────────────────────────────────────────────────────────────

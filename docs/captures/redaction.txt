@@ -1,0 +1,11 @@
+┌─ La rédaction d'une réponse ────────────────────────────────────────────────────────────────────
+│ Nouveau message                                                                                 
+│ ────────────────────────────────────────────────────────────────────────────────────────────────
+│ À :    Commission Scolaire <scolaire@example.org>                                               
+│ Cc :                                                                                            
+│ Objet : Re: Rapport de la commission scolaire                                                   
+│                                                                                                 
+│ > Rapport de la commission scolaire                                                             
+│                                                                                                 
+│ ↑↓ champ  ·  tab suivant  ·  entendre proposition  ·  ctrl+r éditer  ·  ctrl+s envoyer  ·  …    
+└──────────────────────────────────────────────────────────────────────────────────────────────────

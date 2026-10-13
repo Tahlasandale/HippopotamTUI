@@ -186,6 +186,9 @@ func TestSujetDeRéponse(t *testing.T) {
 		{"Re : Question", "Re: Question"},
 		{"[liste] Question", "Re: [liste] Question"},
 		{"", "Re:"},
+		{"Re: Re : Question", "Re: Question"},
+		{"RE: re: Question", "Re: Question"},
+		{"Fwd: Question", "Re: Question"},
 	}
 
 	for _, c := range cases {
@@ -201,6 +204,35 @@ func TestSujetDeTransfert(t *testing.T) {
 	}
 	if got := SujetTransfert("Fwd: Question"); got != "Fwd: Question" {
 		t.Errorf("SujetTransfert = %q", got)
+	}
+	if got := SujetTransfert("Re: Question"); got != "Fwd: Question" {
+		t.Errorf("SujetTransfert = %q", got)
+	}
+}
+
+// la citation reprend le texte d'origine ligne par ligne, comme partout ailleurs.
+func TestCiter(t *testing.T) {
+	cite := Citer("Bonjour,\n\nsalut")
+	if cite != "> Bonjour,\n>\n> salut" {
+		t.Errorf("Citer = %q", cite)
+	}
+	if got := Citer(""); got != "" {
+		t.Errorf("Citer d'un texte vide = %q", got)
+	}
+	// les espaces de fin de ligne disparaissent : la citation doit tenir en
+	// colonne comme le reste du message.
+	if got := Citer("a   \nb"); got != "> a\n> b" {
+		t.Errorf("Citer = %q", got)
+	}
+}
+
+func TestCiterPourTransfert(t *testing.T) {
+	cite := CiterPourTransfert("le corps", "Alice <a@b.c>", "Sujet", "12/10/2026")
+
+	for _, attendu := range []string{"Message transféré", "De : Alice <a@b.c>", "Objet : Sujet", "le corps"} {
+		if !strings.Contains(cite, attendu) {
+			t.Errorf("la citation ne contient pas %q :\n%s", attendu, cite)
+		}
 	}
 }
 

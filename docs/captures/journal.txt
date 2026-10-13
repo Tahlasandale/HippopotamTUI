@@ -1,0 +1,14 @@
+┌─ Le journal des appels ─────────────────────────────────────────────────────────────────────────
+│ Journal                                                                                         
+│ Les appels faits à himalaya, dans l'ordre. Rien n'y est écrit sur le disque à part les…         
+│ ────────────────────────────────────────────────────────────────────────────────────────────────
+│                                                                                                 
+│ 23:18:04 comptes : proton, gmail                                                                
+│ 23:18:04 boîtes de proton : 5                                                                   
+│ 23:18:04 proton/Inbox : 10 messages                                                             
+│ 23:18:04 brouillon conservé : Re: Rapport de la commission scolaire                             
+│ 23:18:04 proton/Inbox : 10 messages                                                             
+│ 23:18:04 proton/Inbox : 10 messages                                                             
+│                                                                                                 
+│ échap retour                                                                                    
+└──────────────────────────────────────────────────────────────────────────────────────────────────

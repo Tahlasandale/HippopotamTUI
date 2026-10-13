@@ -28,7 +28,7 @@ type Client struct {
 func Nouveau() *Client {
 	now := time.Now()
 	journal := func(jours, heures int) string {
-		return now.AddDate(0, 0, -jours).Add(-time.Duration(heures) * time.Hour).Format(time.RFC3339)
+		return now.AddDate(0, 0, -jours).Add(-time.Duration(heures) * time.Hour).Format(time.RFC1123Z)
 	}
 
 	modèles := []struct {

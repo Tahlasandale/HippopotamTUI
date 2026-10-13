@@ -1,0 +1,16 @@
+┌─ La boîte de réception ─────────────────────────────────────────────────────────────────────────
+│ hippo · proton / Inbox                                                                      1/10
+│ ────────────────────────────────────────────────────────────────────────────────────────────────
+│ • ??/?? Commission Scolaire    📎 Rapport de la commission scolaire                             
+│ • ??/?? Mairie                 Réunion du conseil municipal                                     
+│   ??/?? Scolarité              Votre attestation d'inscription                                  
+│ ★ ??/?? Emploi                 Candidature reçue                                                
+│   ??/?? Énergie                📎 Facture du mois                                               
+│   ??/?? Association            Invitation à l'assemblée générale                                
+│   ??/?? Info                   Newsletter du service                                            
+│   ??/?? Carla                  Réponse à votre message                                          
+│   ??/?? Sécurité               Mot de passe expiré                                              
+│   ??/?? Groupe                 📎 Photo de la sortie                                            
+│                                                                                                 
+│ ↑↓ naviguer  ·  ←→ boîte  ·  entrer lire  ·  r répondre  ·  a à tous  ·  t transférer  ·  …     
+└──────────────────────────────────────────────────────────────────────────────────────────────────

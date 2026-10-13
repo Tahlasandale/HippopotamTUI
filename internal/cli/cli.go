@@ -67,6 +67,7 @@ Entretien :
 	cmd.AddCommand(contactsCmd(&opts))
 	cmd.AddCommand(cacheCmd(&opts))
 	cmd.AddCommand(manCmd())
+	cmd.AddCommand(captureCmd())
 
 	return cmd
 }

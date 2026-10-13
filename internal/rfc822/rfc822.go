@@ -77,19 +77,17 @@ func Analyser(brut []byte) (*Message, error) {
 
 	msg := &Message{
 		Sujet:     decodeEnTete(lu.Header.Get("Subject")),
-		De:        decodeEnTete(lu.Header.Get("From")),
-		Vers:      decodeEnTete(lu.Header.Get("To")),
-		Cc:        decodeEnTete(lu.Header.Get("Cc")),
-		Bcc:       decodeEnTete(lu.Header.Get("Bcc")),
-		ReponseA:  decodeEnTete(lu.Header.Get("Reply-To")),
+		De:        adresseLisible(decodeEnTete(lu.Header.Get("From"))),
+		Vers:      adresseLisible(decodeEnTete(lu.Header.Get("To"))),
+		Cc:        adresseLisible(decodeEnTete(lu.Header.Get("Cc"))),
+		Bcc:       adresseLisible(decodeEnTete(lu.Header.Get("Bcc"))),
+		ReponseA:  adresseLisible(decodeEnTete(lu.Header.Get("Reply-To"))),
 		MessageID: strings.Trim(lu.Header.Get("Message-Id"), "<> "),
 	}
 
-	if date, err := mail.ParseDate(lu.Header.Get("Date")); err == nil {
-		msg.Date = date
-	}
+	msg.Date = lireDate(lu.Header.Get("Date"))
 
-	msg.Corps, msg.HTML, msg.Pièces, msg.DejaMarkdown = analyserCorps(lu)
+	msg.Corps, msg.HTML, msg.Pièces, msg.DejaMarkdown = analyserCorps(lu.Header, lu.Body)
 
 	if msg.Corps == "" && msg.HTML != "" {
 		msg.Corps = HTMLVersTexte(msg.HTML)
@@ -99,52 +97,212 @@ func Analyser(brut []byte) (*Message, error) {
 
 // analyserCorps parcourt le corps du message, en descendant dans les parties
 // imbriquées.
-func analyserCorps(lu *mail.Message) (texte, html string, pièces []Pièce, dejaMarkdown bool) {
-	typeMedia, params, err := mime.ParseMediaType(lu.Header.Get("Content-Type"))
+// adresseLisible retire les chevrons d'une adresse qui n'en a pas besoin :
+// « <mailer@lists.sr.ht> » se lit « mailer@lists.sr.ht », et l'espace qui reste
+// autour des plusieurs adresses ne sert à rien.
+// sansGuillemets retire les guillemets d'un nom d'affichage, que le protocole
+// exige mais que personne ne veut lire à l'écran.
+func sansGuillemets(valeur string) string {
+	if len(valeur) >= 2 && strings.HasPrefix(valeur, `"`) {
+		if fin := strings.Index(valeur[1:], `"`); fin > 0 {
+			return strings.TrimSpace(valeur[1:fin+1]) + valeur[fin+2:]
+		}
+	}
+	return valeur
+}
+
+func adresseLisible(valeur string) string {
+	parties := strings.Split(valeur, ",")
+	for i, p := range parties {
+		p = strings.TrimSpace(p)
+		if len(p) >= 2 && strings.HasPrefix(p, "<") && strings.HasSuffix(p, ">") && !strings.Contains(p[1:len(p)-1], "<") {
+			p = p[1 : len(p)-1]
+		}
+		parties[i] = sansGuillemets(strings.TrimSpace(p))
+	}
+	return strings.Join(parties, ", ")
+}
+
+// analyserCorps parcourt le corps du message, en descendant dans les parties
+// imbriquées.
+// lireDate accepte la date RFC 5322, celle du protocole, et la forme ISO que
+// produisent certains générateurs. Un message réel n'a jamais la seconde forme,
+// mais un outil qui sait la lire ne fait pas de mal.
+func lireDate(valeur string) time.Time {
+	valeur = strings.TrimSpace(valeur)
+	if valeur == "" {
+		return time.Time{}
+	}
+	if t, err := mail.ParseDate(valeur); err == nil {
+		return t
+	}
+	for _, format := range []string{time.RFC3339, "2006-01-02T15:04:05", "2006-01-02 15:04:05"} {
+		if t, err := time.Parse(format, valeur); err == nil {
+			return t
+		}
+	}
+	return time.Time{}
+}
+
+// analyserCorps parcourt le corps d'un message ou d'une partie, en descendant
+// dans les imbriquements.
+//
+// Le corps est lu en entier avant d'être interprété : c'est la seule façon de
+// savoir si une frontière annoncée existe vraiment. Certains envois ajoutent un
+// second en-tête Content-Type à une partie multipart en annonçant ensuite un
+// texte, et la Norme, qui veut que seul le premier compte, décrit alors un corps
+// vide. Prendre en compte ce qui est réellement là vaut mieux qu'un message vide.
+func analyserCorps(entêtes mail.Header, corps io.Reader) (texte, html string, pièces []Pièce, dejaMarkdown bool) {
+	brut, _ := io.ReadAll(corps)
+
+	// Plusieurs Content-Type peuvent être annoncés pour la même partie. On les
+	// essaie tous dans l'ordre, et on garde le premier qui donne quelque chose :
+	// c'est ce qui permet de lire les messages dont la partie annonce un
+	// multipart inexistant avant d'annoncer un texte.
+	for _, valeur := range entêtes["Content-Type"] {
+		typeMedia, params := typeEtParams(valeur)
+
+		switch {
+		case strings.HasPrefix(typeMedia, "multipart/"):
+			limite := params["boundary"]
+			if limite == "" {
+				continue
+			}
+			texte, html = "", ""
+			parcourirMultipart(bytes.NewReader(brut), limite, &texte, &html, &pièces, &dejaMarkdown)
+			if texte != "" || html != "" || len(pièces) > 0 {
+				return texte, html, pièces, dejaMarkdown
+			}
+
+		case strings.HasPrefix(typeMedia, "text/"):
+			contenu := décoderTransfert(brut, entêtes.Get("Content-Transfer-Encoding"))
+			if len(contenu) == 0 {
+				continue
+			}
+			if typeMedia == "text/markdown" {
+				dejaMarkdown = true
+			}
+			if typeMedia == "text/html" {
+				return "", string(contenu), pièces, dejaMarkdown
+			}
+			return string(contenu), "", pièces, dejaMarkdown
+		}
+	}
+
+	// Aucun type lisible. Deux cas restent, tous deux rencontrés dans la vraie
+	// vie : un multipart annoncé dont la frontière n'existe pas, et des en-têtes
+	// placés dans le corps au lieu de l'être dans la partie. Dans le second cas,
+	// la partie est relue comme si quelqu'un les avait rédigés correctement.
+	if imbriqués, reste := entêtesDansLeCorps(brut); imbriqués != nil {
+		if texte, html, pièces, dejaMarkdown = analyserCorps(imbriqués, bytes.NewReader(reste)); texte != "" || html != "" {
+			return texte, html, pièces, dejaMarkdown
+		}
+	}
+
+	if contenu := décoderTransfert(brut, entêtes.Get("Content-Transfer-Encoding")); len(contenu) > 0 {
+		return string(contenu), "", pièces, dejaMarkdown
+	}
+	return "", "", pièces, dejaMarkdown
+}
+
+// entêtesDansLeCorps repère des en-têtes MIME écrits au début du corps d'une
+// partie, ce que font les listes de diffusion : la partie annonce un multipart
+// inexistant, puis écrit ses vrais en-têtes et son texte à la suite.
+//
+// C'est maladroit, mais fréquent, et sans cela le message s'afficherait vide.
+func entêtesDansLeCorps(brut []byte) (mail.Header, []byte) {
+	texte := normaliserFinDeLigne(string(brut))
+	lignes := strings.Split(texte, "\n")
+
+	var lues []string
+	vuEnTête := false
+	for i, ligne := range lignes {
+		tronquée := ligne
+		if i == 0 {
+			tronquée = strings.TrimPrefix(ligne, "\t")
+		}
+		if i > 0 && !estEnTête(tronquée) {
+			break
+		}
+		if !estEnTête(tronquée) {
+			return nil, brut
+		}
+		vuEnTête = true
+		lues = append(lues, tronquée)
+	}
+	if !vuEnTête {
+		return nil, brut
+	}
+
+	lu, err := mail.ReadMessage(strings.NewReader(strings.Join(lues, "\n") + "\n\n"))
 	if err != nil {
-		typeMedia = "text/plain"
-		params = map[string]string{}
+		return nil, brut
+	}
+
+	// Le texte commence après la première ligne vide.
+	joined := strings.Join(lignes, "\n")
+	entête := joined[:strings.Index(joined, "\n\n")] + "\n\n"
+	reste := joined[len(entête):]
+	return lu.Header, []byte(reste)
+}
+
+// estEnTête reconnaît une ligne « Nom: valeur ».
+func estEnTête(ligne string) bool {
+	i := strings.Index(ligne, ":")
+	if i <= 0 {
+		return false
+	}
+	for _, c := range ligne[:i] {
+		if (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && c != '-' {
+			return false
+		}
+	}
+	return true
+}
+
+// typeEtParams lit un Content-Type en tolérant les fautes.
+//
+// mime.ParseMediaType est strict : il échoue sur un paramètre sans valeur, comme
+// « boundary=abc charset=utf-8 », que produisent certaines listes de diffusion.
+// Échouer ici ferait passer une partie texte pour un contenu illisible, et le
+// message s'afficherait avec ses propres en-têtes à l'écran. On relit donc à la
+// main ce que la bibliothèque a refusé.
+func typeEtParams(valeur string) (string, map[string]string) {
+	if typeMedia, params, err := mime.ParseMediaType(valeur); err == nil && typeMedia != "" {
+		return typeMedia, params
+	}
+
+	morceaux := strings.Split(valeur, ";")
+	typeMedia := strings.ToLower(strings.TrimSpace(morceaux[0]))
+
+	params := map[string]string{}
+	for _, morceau := range morceaux[1:] {
+		clef, val, trouvé := strings.Cut(morceau, "=")
+		clef = strings.ToLower(strings.TrimSpace(clef))
+		if clef == "" {
+			continue
+		}
+		if trouvé {
+			// La valeur s'arrête au premier espace : « boundary=abc charset=x »
+			// décrit deux paramètres, pas une frontière contenant un espace.
+			val, _, _ = strings.Cut(val, " ")
+		}
+		params[clef] = strings.Trim(strings.TrimSpace(val), `"`)
 	}
 	if typeMedia == "" {
 		typeMedia = "text/plain"
 	}
-	if len(lu.Header["Content-Type"]) > 0 && strings.Contains(strings.ToLower(lu.Header.Get("Content-Type")), "text/markdown") {
-		dejaMarkdown = true
-	}
-
-	corps := lu.Body
-
-	if strings.HasPrefix(typeMedia, "multipart/") {
-		limite := params["boundary"]
-		if limite != "" {
-			if err := parcourirMultipart(corps, limite, &texte, &html, &pièces, &dejaMarkdown); err == nil {
-				return texte, html, pièces, dejaMarkdown
-			}
-		}
-		// Sans frontière exploitable, on retombe sur une lecture brute plutôt que
-		// d'afficher une erreur à l'utilisateur.
-	}
-
-	if strings.HasPrefix(typeMedia, "text/") {
-		contenu := lire(corps, lu.Header.Get("Content-Transfer-Encoding"))
-		if typeMedia == "text/html" {
-			return "", string(contenu), pièces, dejaMarkdown
-		}
-		return string(contenu), "", pièces, dejaMarkdown
-	}
-
-	return "", "", pièces, dejaMarkdown
+	return typeMedia, params
 }
 
-func parcourirMultipart(lecteur io.Reader, limite string, texte *string, html *string, pièces *[]Pièce, dejaMarkdown *bool) error {
+// parcourirMultipart descend dans les parties d'un multipart.
+func parcourirMultipart(lecteur io.Reader, limite string, texte *string, html *string, pièces *[]Pièce, dejaMarkdown *bool) {
 	mp := multipart.NewReader(lecteur, limite)
 	for {
 		partie, err := mp.NextPart()
-		if err == io.EOF {
-			return nil
-		}
 		if err != nil {
-			return err
+			// Une partie tronquée ne doit pas faire perdre ce qu'on a déjà lu.
+			return
 		}
 
 		disposition, dispParams, _ := mime.ParseMediaType(partie.Header.Get("Content-Disposition"))
@@ -157,20 +315,29 @@ func parcourirMultipart(lecteur io.Reader, limite string, texte *string, html *s
 			nom = typeParams["name"]
 		}
 
-		if disposition == "attachment" || (nom != "" && !strings.HasPrefix(partie.Header.Get("Content-Type"), "text/")) {
-			contenu := lire(partie, partie.Header.Get("Content-Transfer-Encoding"))
+		brut, _ := io.ReadAll(partie)
+
+		// Une partie est une pièce jointe dès qu'elle n'est pas du texte, ou dès
+		// qu'elle est annoncée comme telle. Une pièce sans nom de fichier reste
+		// donc une pièce, et le texte du message ne l'avale pas.
+		// typePrincipal suffirait, mais il se rabat sur « application/octet-stream »
+		// dès qu'un paramètre est mal écrit : on perdrait alors la frontière et la
+		// partie deviendrait une fausse pièce jointe.
+		typeMedia, _ := typeEtParams(partie.Header.Get("Content-Type"))
+		estTexte := strings.HasPrefix(typeMedia, "text/")
+		estComposite := strings.HasPrefix(typeMedia, "multipart/")
+
+		if !estComposite && (disposition == "attachment" || (nom != "" && !estTexte) || (!estTexte && disposition != "inline")) {
+			contenu := décoderTransfert(brut, partie.Header.Get("Content-Transfer-Encoding"))
 			*pièces = append(*pièces, Pièce{
 				Nom:    nom,
-				Type:   typePrincipal(partie.Header.Get("Content-Type")),
+				Type:   typeMedia,
 				Taille: len(contenu),
 			})
 			continue
 		}
 
-		sousTexte, sousHTML, sousPièces, sousMarkdown := analyserCorps(&mail.Message{
-			Header: mail.Header(partie.Header),
-			Body:   partie,
-		})
+		sousTexte, sousHTML, sousPièces, sousMarkdown := analyserCorps(mail.Header(partie.Header), bytes.NewReader(brut))
 		*dejaMarkdown = *dejaMarkdown || sousMarkdown
 		*pièces = append(*pièces, sousPièces...)
 		if sousTexte != "" && *texte == "" {
@@ -182,32 +349,31 @@ func parcourirMultipart(lecteur io.Reader, limite string, texte *string, html *s
 	}
 }
 
+// décoderTransfert décode un contenu selon son encodage de transfert, puis
+// normalise les fins de ligne.
+func décoderTransfert(brut []byte, encodage string) []byte {
+	var sortie io.Reader = bytes.NewReader(brut)
+
+	switch {
+	case strings.EqualFold(strings.TrimSpace(encodage), "base64"):
+		sortie = base64.NewDecoder(base64.StdEncoding, bytes.NewReader(brut))
+	case strings.EqualFold(strings.TrimSpace(encodage), "quoted-printable"):
+		sortie = quotedprintable.NewReader(bytes.NewReader(brut))
+	}
+
+	contenu, err := io.ReadAll(sortie)
+	if err != nil && len(contenu) == 0 {
+		return nil
+	}
+	return []byte(normaliserFinDeLigne(string(contenu)))
+}
+
 func typePrincipal(valeur string) string {
 	t, _, err := mime.ParseMediaType(valeur)
 	if err != nil {
 		return "application/octet-stream"
 	}
 	return t
-}
-
-// lire décode un contenu selon son encodage de transfert puis le charset
-// annoncé.
-func lire(lecteur io.Reader, encodage string) []byte {
-	var brut io.Reader = lecteur
-
-	switch {
-	case strings.EqualFold(strings.TrimSpace(encodage), "base64"):
-		décodé := base64.NewDecoder(base64.StdEncoding, lecteur)
-		brut = décodé
-	case strings.EqualFold(strings.TrimSpace(encodage), "quoted-printable"):
-		brut = quotedprintable.NewReader(lecteur)
-	}
-
-	contenu, err := io.ReadAll(brut)
-	if err != nil && len(contenu) == 0 {
-		return nil
-	}
-	return []byte(normaliserFinDeLigne(string(contenu)))
 }
 
 // décodeur sert à décoder les en-têtes encodés en RFC 2047. WordDecoder a une

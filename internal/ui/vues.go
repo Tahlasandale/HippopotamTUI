@@ -274,11 +274,16 @@ func (m *Modèle) rendreEntêtesMessage() []string {
 		return stEtiquette.Render(fmt.Sprintf("%-7s ", nom+" :")) + couperColonnes(valeur, largeur)
 	}
 
-	out := []string{
-		ligne("De", msg.De),
-		ligne("À", msg.Vers),
-		ligne("Cc", msg.Cc),
-		ligne("Objet", msg.Sujet),
+	var out []string
+	for _, entête := range []struct{ nom, valeur string }{
+		{"De", msg.De},
+		{"À", msg.Vers},
+		{"Cc", msg.Cc},
+		{"Objet", msg.Sujet},
+	} {
+		if ligne := ligne(entête.nom, entête.valeur); ligne != "" {
+			out = append(out, ligne)
+		}
 	}
 	if !msg.Date.IsZero() {
 		out = append(out, ligne("Date", msg.Date.Format("lundi 2 janvier 2006 à 15:04")))

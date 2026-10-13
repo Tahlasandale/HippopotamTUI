@@ -1,0 +1,16 @@
+┌─ Le constructeur de filtres ────────────────────────────────────────────────────────────────────
+│ Filtres                                                                                         
+│ ────────────────────────────────────────────────────────────────────────────────────────────────
+│                                                                                                 
+│ De         (vide)                                                                               
+│ Objet      (vide)                                                                               
+│ Corps      (vide)                                                                               
+│ Depuis le  (vide)                                                                               
+│ Avant le   (vide)                                                                               
+│ Non lus    non                                                                                  
+│                                                                                                 
+│ Requête envoyée à himalaya :                                                                    
+│                                                                                                 
+│                                                                                                 
+│ ↑↓ critère  ·  ←→ basculer  ·  entrée valider  ·  échap annuler                                 
+└──────────────────────────────────────────────────────────────────────────────────────────────────

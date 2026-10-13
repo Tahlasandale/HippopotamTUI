@@ -6,6 +6,8 @@ import (
 
 	"github.com/Tahlasandale/HippopotamTUI/internal/contacts"
 	"github.com/Tahlasandale/HippopotamTUI/internal/himalaya"
+	"github.com/Tahlasandale/HippopotamTUI/internal/redaction"
+	"github.com/Tahlasandale/HippopotamTUI/internal/rfc822"
 	"github.com/muesli/reflow/wordwrap"
 )
 
@@ -44,11 +46,41 @@ type formulaire struct {
 	ouvert   bool
 }
 
+// CompléterBrouillon répare ce que himalaya n'a pas su faire.
+//
+// Deux cas, tous deux rencontrés dans la vraie vie. D'abord l'objet : un message
+// qui commence déjà par « Re : » ne doit pas produire « Re: Re : ». Ensuite le
+// corps : himalaya ne sait pas lire certaines parties MIME mal formées et renvoie
+// alors un squelette vide ; le message affiché, lui, a déjà été décodé par le
+// TUI, autant s'en servir pour construire la citation.
+func CompléterBrouillon(br himalaya.Brouillon, origine himalaya.Origine, message *rfc822.Message) himalaya.Brouillon {
+	switch origine.Kind {
+	case himalaya.Reponse, himalaya.ReponseTout:
+		br.Sujet = redaction.SujetReponse(br.Sujet)
+	case himalaya.Transfert:
+		br.Sujet = redaction.SujetTransfert(br.Sujet)
+	}
+
+	if strings.TrimSpace(br.Corps) == "" && message != nil {
+		switch origine.Kind {
+		case himalaya.Reponse, himalaya.ReponseTout:
+			br.Corps = redaction.Citer(message.Corps)
+		case himalaya.Transfert:
+			date := ""
+			if !message.Date.IsZero() {
+				date = message.Date.Format("02/01/2006 à 15:04")
+			}
+			br.Corps = redaction.CiterPourTransfert(message.Corps, message.De, message.Sujet, date)
+		}
+	}
+	return br
+}
+
 // nouveauFormulaire initialise le formulaire à partir du squelette rendu par
 // himalaya. La rédaction s'ouvre immédiatement dans l'éditeur : c'est le geste
 // qu'on attend d'un « répondre », et l'utilisateur retrouve sesrepères dedans.
 func nouveauFormulaire(br himalaya.Brouillon, origine himalaya.Origine, carnet []contacts.Contact) *formulaire {
-	return &formulaire{
+	f := &formulaire{
 		origine:  origine,
 		De:       br.De,
 		To:       br.To,
@@ -58,6 +90,10 @@ func nouveauFormulaire(br himalaya.Brouillon, origine himalaya.Origine, carnet [
 		contacts: carnet,
 		ouvert:   true,
 	}
+	// Le champ À est actif et sa saisie charge ce qu'il contient déjà : sinon le
+	// formulaire s'ouvre vide alors que le squelette de himalaya est prêt.
+	f.entrerChamp(ChampÀ)
+	return f
 }
 
 // ChampSuivant désigne le champ suivant : les trois champs d'en-tête tournent en
@@ -201,7 +237,15 @@ func (f *formulaire) versEnvoi(fichier string) himalaya.Envoi {
 
 // valeurAffichée rend le champ actif tel qu'il est : c'est la saisie en cours,
 // complétée des adresses déjà validées.
-func (f *formulaire) valeurAffichée() string { return f.saisie }
+// affichée rend un champ : la saisie en cours pour le champ actif, la valeur
+// déjà validée pour les autres. Sans cette distinction, les trois champs
+// afficheraient la même chose.
+func (f *formulaire) affichée(c Champ) string {
+	if f.champ == c {
+		return f.saisie
+	}
+	return f.buffer(c)
+}
 
 func listerAdresses(liste []string, enCours string) string {
 	out := strings.Join(liste, ", ")
@@ -237,10 +281,9 @@ func rendreFormulaire(f *formulaire, largeur int) []string {
 		return stEtiquette.Render(gauche) + droite
 	}
 
-	lignes := []string{
-		étiquette(nomsChamps[ChampÀ], f.valeurAffichée(), f.champ == ChampÀ),
-		étiquette(nomsChamps[ChampCc], f.valeurAffichée(), f.champ == ChampCc),
-		étiquette(nomsChamps[ChampSujet], f.valeurAffichée(), f.champ == ChampSujet),
+	lignes := make([]string, 0, nbChamps)
+	for c := Champ(0); c < nbChamps; c++ {
+		lignes = append(lignes, étiquette(nomsChamps[c], f.affichée(c), f.champ == c))
 	}
 
 	corps := corpsEnveloppé(f.Corps, largeur)

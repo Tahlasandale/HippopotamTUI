@@ -1,0 +1,21 @@
+┌─ Un message ouvert ─────────────────────────────────────────────────────────────────────────────
+│ hippo · proton / Inbox                                                                      1/10
+│ ────────────────────────────────────────────────────────────────────────────────────────────────
+│ De :    Commission Scolaire <scolaire@example.org>                                              
+│ À :     Orphin <orphin@protonmail.com>                                                          
+│ Objet : Rapport de la commission scolaire                                                       
+│ Date :  lundi 13 janvier 2026 à 21:18                                                           
+│ Pièces : rapport.pdf                                                                            
+│                                                                                                 
+│ Bonjour,                                                                                        
+│                                                                                                 
+│ Ceci est le message de démonstration numéro 101, dans la boîte Inbox.                           
+│                                                                                                 
+│ Il permet d'avoir une liste pleine, un message à lire, un fil de                                
+│ discussion à reprendre, le tout sans toucher au réseau.                                         
+│                                                                                                 
+│ Cordialement,                                                                                   
+│ Commission Scolaire <scolaire@example.org>                                                      
+│                                                                                                 
+│ ↑↓ défiler  ·  ←→ message  ·  entrer suivant  ·  r répondre  ·  a à tous  ·  t transférer  ·  … 
+└──────────────────────────────────────────────────────────────────────────────────────────────────

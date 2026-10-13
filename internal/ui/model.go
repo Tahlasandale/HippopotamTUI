@@ -201,7 +201,8 @@ func (m *Modèle) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.écran = ÉcranListe
 			return m, nil
 		}
-		m.formulaire = nouveauFormulaire(msg.brouillon, msg.origine, m.contacts)
+		br := CompléterBrouillon(msg.brouillon, msg.origine, m.message)
+		m.formulaire = nouveauFormulaire(br, msg.origine, m.contacts)
 		m.écran = ÉcranRédaction
 		return m, m.lancerÉditeur()
 

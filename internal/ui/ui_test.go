@@ -734,3 +734,47 @@ func TestBandeauDeBienvenue(t *testing.T) {
 		t.Errorf("la vue ne montre pas le bandeau d'accueil :\n%s", h.vue())
 	}
 }
+
+// himalaya ne sait pas toujours lire un corps : le TUI a déjà décodé le message
+// affiché, il s'en sert pour construire la citation plutôt que de laisser un
+// squelette vide.
+func TestCitationDeSecours(t *testing.T) {
+	message := &rfc822.Message{
+		Sujet: "Invitation",
+		De:    "Mairie <mairie@example.org>",
+		Corps: "Bonjour,\n\nCordialement.",
+	}
+
+	br := CompléterBrouillon(himalaya.Brouillon{Sujet: "Re : Invitation"}, himalaya.Origine{Kind: himalaya.Reponse}, message)
+
+	if br.Sujet != "Re: Invitation" {
+		t.Errorf("Sujet = %q, veut un seul Re:", br.Sujet)
+	}
+	if !strings.Contains(br.Corps, "> Bonjour,") {
+		t.Errorf("Corps = %q, veut la citation du message affiché", br.Corps)
+	}
+}
+
+// un objet déjà préfixé deux fois ne s'empile pas.
+func TestObjetNormalisé(t *testing.T) {
+	br := CompléterBrouillon(himalaya.Brouillon{Sujet: "Re: Re : Invitation"}, himalaya.Origine{Kind: himalaya.Reponse}, nil)
+	if br.Sujet != "Re: Invitation" {
+		t.Errorf("Sujet = %q", br.Sujet)
+	}
+}
+
+// le transfert est encadré d'un séparateur lisible.
+func TestTransfertEncadré(t *testing.T) {
+	message := &rfc822.Message{Sujet: "Invitation", De: "Mairie <mairie@example.org>", Corps: "Bonjour."}
+
+	br := CompléterBrouillon(himalaya.Brouillon{Sujet: "Invitation"}, himalaya.Origine{Kind: himalaya.Transfert}, message)
+	if br.Sujet != "Fwd: Invitation" {
+		t.Errorf("Sujet = %q", br.Sujet)
+	}
+	if !strings.Contains(br.Corps, "Message transféré") {
+		t.Errorf("Corps = %q", br.Corps)
+	}
+	if len(br.To) != 0 {
+		t.Errorf("To = %v, un transfert n'a personne en face", br.To)
+	}
+}
