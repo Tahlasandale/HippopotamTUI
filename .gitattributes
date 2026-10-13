@@ -1,0 +1,3 @@
+# Les fixtures MIME sont des messages réels : leurs fins de ligne sont en CRLF,
+# et cette intention doit survivre à tout outil de normalisation de texte.
+*.eml -text

@@ -1,0 +1,26 @@
+Message-Id: <piece@example.org>
+Date: Fri, 19 Apr 2024 11:30:00 +0200
+From: Commission Scolaire <scolaire@example.org>
+To: orphin@protonmail.com
+Subject: Votre attestation
+Content-Type: multipart/mixed; boundary="mix"
+
+--mix
+Content-Type: text/plain; charset=iso-8859-1
+
+Bonjour,
+
+Votre attestation est en pièce jointe. À conserver.
+--mix
+Content-Type: application/pdf; name="attestation.pdf"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="attestation.pdf"
+
+JVBERi0xLjQKJSVFT0YK
+--mix
+Content-Type: image/png; name="logo.png"
+Content-Transfer-Encoding: base64
+Content-Disposition: inline; filename="logo.png"
+
+iVBORw0KGgo=
+--mix--

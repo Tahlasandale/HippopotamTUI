@@ -1,0 +1,15 @@
+Message-Id: <simple@example.org>
+Date: Wed, 17 Apr 2024 06:06:28 +0200
+From: Alice Martin <alice@example.org>
+To: Orphin <orphin@protonmail.com>
+Subject: Un message tout simple
+Content-Type: text/plain; charset=utf-8
+
+Bonjour,
+
+Ceci est un message en texte brut, avec un accent : éàü.
+
+Il contient une ligne un peu longue qui devrait être repliée par la fenêtre de lecture plutôt que tronquée par le terminal, parce que c'est comme ça que se lit un courriel.
+
+Cordialement,
+Alice

@@ -1,0 +1,21 @@
+Message-Id: <alternative@example.org>
+Date: Thu, 18 Apr 2024 09:00:00 +0200
+From: "Martin, Alice" <alice@example.org>
+To: orphin@protonmail.com
+Cc: bob@example.org, charlie@example.org
+Subject: =?UTF-8?Q?Caf=C3=A9_:_r=C3=A9union_annul=C3=A9e?=
+Content-Type: multipart/alternative; boundary="alt"
+
+--alt
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+Bonjour,
+
+La r=C3=A9union est annul=C3=A9e : caf=C3=A9 =E2=80=93 Non. Cette phrase est=
+=volontairement coup=C3=A9e en deux lignes physiques.
+--alt
+Content-Type: text/html; charset=utf-8
+
+<html><body><p>Bonjour,</p><p>La <b>réunion</b> est annulée&nbsp;: café&nbsp;?</p></body></html>
+--alt--

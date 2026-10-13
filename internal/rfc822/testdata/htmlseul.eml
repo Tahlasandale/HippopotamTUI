@@ -1,0 +1,20 @@
+Message-Id: <htmlseul@example.org>
+Date: Sat, 20 Apr 2024 08:15:00 +0200
+From: Bulletin <bulletin@example.org>
+To: orphin@protonmail.com
+Subject: <style>html { color: red }</style> Le programme de la soirée
+Content-Type: text/html; charset=utf-8
+
+<html>
+  <head>
+    <style>p { margin: 0 }</style>
+    <script>alert("ceci ne doit pas apparaître")</script>
+  </head>
+  <body>
+    <h1>Le programme</h1>
+    <p>Première partie : <i>Ouverture</i></p>
+    <p>Seconde partie : <b>Finale</b></p>
+    <ul><li>Un</li><li>Deux</li></ul>
+    <p>À bientôt &amp; cordialement</p>
+  </body>
+</html>
